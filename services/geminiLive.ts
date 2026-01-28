@@ -14,8 +14,9 @@ export interface GeminiLiveCallbacks {
   onClose: (event: CloseEvent) => void;
   onError: (event: any) => void;
   onAudioData: (visualizerData: number) => void;
-  onTranscript: (text: string, speaker: 'AI' | 'Candidate', isFinal: boolean) => void;
+  onTranscript: (text: string, speaker: 'AI' | 'Candidate', isFinal: boolean, turnId: string) => void;
   onEndSessionTriggered: () => void;
+  onAiSpeaking: (isSpeaking: boolean) => void;
 }
 
 const endInterviewTool: FunctionDeclaration = {
@@ -39,10 +40,13 @@ export class GeminiLiveService {
   private activeSources: Set<AudioBufferSourceNode> = new Set();
   private sessionPromise: Promise<any> | null = null; 
   private isMuted: boolean = false;
+  private isDisconnecting: boolean = false;
   
   // Transcription state
   private currentInputTranscription: string = '';
   private currentOutputTranscription: string = '';
+  private currentInputTurnId: string = 'user-' + Math.random().toString(36).substring(7);
+  private currentOutputTurnId: string = 'ai-' + Math.random().toString(36).substring(7);
 
   // Session ending state
   private pendingEndSession: boolean = false;
@@ -80,12 +84,12 @@ export class GeminiLiveService {
     if (config.interviewType === 'Technical') {
         const diff = config.difficulty || 'Medium';
         difficultyContext = `**Difficulty Level:** ${diff}`;
-        personaContext = `You are an expert Engineering Lead conducting a technical interview for the ${config.jobTitle} position.`;
+        personaContext = `You are Panel AI, an expert Engineering Lead conducting a technical interview for the ${config.jobTitle} position.`;
         if (diff === 'Easy') assessmentInstructions = `Ask basic fundamental questions.`;
         else if (diff === 'Hard') assessmentInstructions = `Ask complex system design and performance questions.`;
         else assessmentInstructions = `Ask standard coding and practical scenario questions.`;
     } else {
-        personaContext = `You are a Senior Hiring Manager conducting a ${config.interviewType} interview.`;
+        personaContext = `You are Panel AI, a Senior Hiring Manager conducting a ${config.interviewType} interview.`;
         assessmentInstructions = `Ask role-specific behavioral or general screening questions.`;
     }
 
@@ -110,12 +114,8 @@ export class GeminiLiveService {
             },
             onclose: (e) => callbacks.onClose(e),
             onerror: (e) => {
-                // Log only the message to avoid leaking full object structure
                 console.error('Gemini Live Socket Error:', e instanceof Error ? e.message : String(e));
-                
                 let message = e instanceof Error ? e.message : 'Connection error';
-                
-                // Use utility to standardize Quota error
                 if (isQuotaError(e) || message.includes('429')) {
                     message = "QUOTA_EXCEEDED";
                 } else if (message.includes('not implemented') || message.includes('not found')) {
@@ -149,11 +149,12 @@ export class GeminiLiveService {
       this.scriptProcessor = this.inputAudioContext.createScriptProcessor(BUFFER_SIZE, 1, 1);
 
       this.scriptProcessor.onaudioprocess = (e) => {
-        if (this.isMuted || !this.sessionPromise) return;
+        if (this.isMuted || !this.sessionPromise || this.isDisconnecting) return;
         const inputData = e.inputBuffer.getChannelData(0);
         const pcmBlob = createPcmBlob(inputData);
         
         this.sessionPromise?.then((session) => {
+            if (this.isDisconnecting) return;
             session.sendRealtimeInput({ media: pcmBlob });
         }).catch(() => {});
       };
@@ -168,17 +169,25 @@ export class GeminiLiveService {
   private async handleMessage(message: LiveServerMessage, callbacks: GeminiLiveCallbacks) {
     if (message.serverContent?.outputTranscription) {
       this.currentOutputTranscription += message.serverContent.outputTranscription.text;
-      callbacks.onTranscript(this.currentOutputTranscription, 'AI', false);
+      callbacks.onTranscript(this.currentOutputTranscription, 'AI', false, this.currentOutputTurnId);
     } else if (message.serverContent?.inputTranscription) {
       this.currentInputTranscription += message.serverContent.inputTranscription.text;
-      callbacks.onTranscript(this.currentInputTranscription, 'Candidate', false);
+      callbacks.onTranscript(this.currentInputTranscription, 'Candidate', false, this.currentInputTurnId);
     }
 
     if (message.serverContent?.turnComplete) {
-      if (this.currentInputTranscription.trim()) callbacks.onTranscript(this.currentInputTranscription, 'Candidate', true);
-      if (this.currentOutputTranscription.trim()) callbacks.onTranscript(this.currentOutputTranscription, 'AI', true);
+      if (this.currentInputTranscription.trim()) {
+        callbacks.onTranscript(this.currentInputTranscription, 'Candidate', true, this.currentInputTurnId);
+      }
+      if (this.currentOutputTranscription.trim()) {
+        callbacks.onTranscript(this.currentOutputTranscription, 'AI', true, this.currentOutputTurnId);
+      }
+      
+      // Reset for next turn - ensures fresh IDs for new messages
       this.currentInputTranscription = '';
       this.currentOutputTranscription = '';
+      this.currentInputTurnId = 'user-' + Math.random().toString(36).substring(7);
+      this.currentOutputTurnId = 'ai-' + Math.random().toString(36).substring(7);
     }
 
     if (message.toolCall) {
@@ -194,7 +203,7 @@ export class GeminiLiveService {
     }
 
     const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-    if (base64Audio && this.outputAudioContext && this.outputNode) {
+    if (base64Audio && this.outputAudioContext && this.outputNode && !this.isDisconnecting) {
         try {
             const audioBytes = decodeBase64(base64Audio);
             let sum = 0;
@@ -210,11 +219,13 @@ export class GeminiLiveService {
             source.connect(this.outputNode);
             source.addEventListener('ended', () => {
                 this.activeSources.delete(source);
+                if (this.activeSources.size === 0) callbacks.onAiSpeaking(false);
                 this.checkEndSession(callbacks);
             });
             source.start(this.nextStartTime);
             this.nextStartTime += audioBuffer.duration;
             this.activeSources.add(source);
+            if (this.activeSources.size === 1) callbacks.onAiSpeaking(true);
         } catch (e) { 
             console.error("Audio error during playback");
         }
@@ -223,6 +234,7 @@ export class GeminiLiveService {
     if (message.serverContent?.interrupted) {
       this.activeSources.forEach(s => { try { s.stop(); } catch(e){} });
       this.activeSources.clear();
+      callbacks.onAiSpeaking(false);
       this.nextStartTime = 0;
     }
   }
@@ -237,14 +249,35 @@ export class GeminiLiveService {
   public setMute(muted: boolean) { this.isMuted = muted; }
 
   public async disconnect() {
-    if (this.mediaStream) this.mediaStream.getTracks().forEach(t => t.stop());
+    if (this.isDisconnecting) return;
+    this.isDisconnecting = true;
+
+    if (this.mediaStream) {
+        this.mediaStream.getTracks().forEach(t => t.stop());
+        this.mediaStream = null;
+    }
+
     if (this.sessionPromise) {
       const session = await this.sessionPromise;
       if (session && session.close) try { session.close(); } catch(e) {}
+      this.sessionPromise = null;
     }
+
     this.activeSources.forEach(s => { try { s.stop(); } catch(e){} });
     this.activeSources.clear();
-    if (this.inputAudioContext) this.inputAudioContext.close();
-    if (this.outputAudioContext) this.outputAudioContext.close();
+
+    // Fix for "Cannot close a closed AudioContext"
+    if (this.inputAudioContext) {
+        if (this.inputAudioContext.state !== 'closed') {
+            try { await this.inputAudioContext.close(); } catch(e) {}
+        }
+        this.inputAudioContext = null;
+    }
+    if (this.outputAudioContext) {
+        if (this.outputAudioContext.state !== 'closed') {
+            try { await this.outputAudioContext.close(); } catch(e) {}
+        }
+        this.outputAudioContext = null;
+    }
   }
 }

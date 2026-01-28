@@ -5,28 +5,39 @@ import { ThemeToggle } from './ThemeToggle';
 interface LayoutProps {
   children: React.ReactNode;
   onShowGuide?: () => void;
+  hideSpotlight?: boolean;
+  hideGrid?: boolean;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, onShowGuide }) => {
+export const Layout: React.FC<LayoutProps> = ({ 
+  children, 
+  onShowGuide, 
+  hideSpotlight = false,
+  hideGrid = false
+}) => {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-white dark:bg-black text-slate-900 dark:text-slate-50 transition-colors duration-300 relative selection:bg-slate-200 dark:selection:bg-slate-800 font-sans">
       
       {/* --- Background System --- */}
       <div className="absolute inset-0 z-0 bg-white dark:bg-[radial-gradient(circle_at_center,_#1a1a1a_0%,_#000000_100%)] transition-colors duration-500" />
       
-      {/* Enhanced Grid Pattern */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.07] dark:opacity-[0.15]" 
-           style={{ 
-             backgroundSize: '40px 40px',
-             backgroundImage: `
-               linear-gradient(to right, #888 1px, transparent 1px),
-               linear-gradient(to bottom, #888 1px, transparent 1px)
-             `,
-           }}>
-      </div>
+      {/* Grid Pattern */}
+      {!hideGrid && (
+        <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.07] dark:opacity-[0.15]" 
+             style={{ 
+               backgroundSize: '40px 40px',
+               backgroundImage: `
+                 linear-gradient(to right, #888 1px, transparent 1px),
+                 linear-gradient(to bottom, #888 1px, transparent 1px)
+               `,
+             }}>
+        </div>
+      )}
 
       {/* Ambient Spotlight */}
-      <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_50%_0%,rgba(0,0,0,0.03),transparent_50%)] dark:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.06),transparent_60%)]" />
+      {!hideSpotlight && (
+        <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_50%_0%,rgba(0,0,0,0.03),transparent_50%)] dark:bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.06),transparent_60%)]" />
+      )}
 
       {/* --- Global Header --- */}
       <header className="flex-none h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-black/80 backdrop-blur-md flex items-center justify-between px-6 z-50 transition-colors duration-300">

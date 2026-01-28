@@ -4,6 +4,7 @@ import { ConnectionStatus, InterviewConfig, TranscriptItem } from '../types';
 import { ControlBar } from './ControlBar';
 import { TranscriptMessage } from './TranscriptMessage';
 import { QuotaModal } from './QuotaModal';
+import { INACTIVITY_TIMEOUT_MS, MAX_INTERVIEW_DURATION } from '../constants';
 
 interface InterviewScreenProps {
   config: InterviewConfig;
@@ -16,20 +17,24 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
   const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
   const [isMuted, setIsMuted] = useState(false);
   const [audioVolume, setAudioVolume] = useState(0);
+  const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [duration, setDuration] = useState(0);
   
   // Auto-disconnect state
   const [isEnding, setIsEnding] = useState(false);
+  const [endReason, setEndReason] = useState<'manual' | 'timeout' | 'inactivity'>('manual');
   const [countdown, setCountdown] = useState(5);
   const [showQuotaModal, setShowQuotaModal] = useState(false);
 
   const geminiRef = useRef<GeminiLiveService | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<number | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
 
   useEffect(() => {
     const service = new GeminiLiveService();
     geminiRef.current = service;
+    lastActivityRef.current = Date.now();
 
     const startInterview = async () => {
       try {
@@ -37,9 +42,26 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
           onOpen: () => {
               setStatus('connected');
               setErrorMessage(null);
-              // Start timer
+              
+              // Start the main session timer
               timerRef.current = window.setInterval(() => {
-                setDuration(prev => prev + 1);
+                setDuration(prev => {
+                    const newDuration = prev + 1;
+                    
+                    // Max duration check
+                    if (newDuration >= MAX_INTERVIEW_DURATION) {
+                        setEndReason('timeout');
+                        setIsEnding(true);
+                    }
+                    return newDuration;
+                });
+                
+                // Inactivity check
+                if (Date.now() - lastActivityRef.current > INACTIVITY_TIMEOUT_MS) {
+                    setEndReason('inactivity');
+                    setIsEnding(true);
+                }
+
               }, 1000);
           },
           onClose: () => {
@@ -50,7 +72,6 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
               console.error('Interview Screen Error Callback:', e);
               if (e === 'QUOTA_EXCEEDED') {
                   setShowQuotaModal(true);
-                  // Ensure we disconnect logic
                   setStatus('error');
                   if (timerRef.current) clearInterval(timerRef.current);
                   return;
@@ -62,26 +83,33 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
           onAudioData: (level) => {
               setAudioVolume(Math.min(1, level / 50));
           },
-          onTranscript: (text, speaker, isFinal) => {
+          onAiSpeaking: (speaking) => {
+              setIsAiSpeaking(speaking);
+              if (speaking) lastActivityRef.current = Date.now();
+          },
+          onTranscript: (text, speaker, isFinal, turnId) => {
+            // Update activity timestamp whenever there is transcription
+            lastActivityRef.current = Date.now();
+
             setTranscript(prev => {
-                const now = Date.now();
-                const lastIdx = prev.length - 1;
-                const lastItem = prev[lastIdx];
+                const existingIdx = prev.findIndex(item => item.id === turnId);
                 
-                if (lastItem && lastItem.speaker === speaker && lastItem.isPartial) {
-                     // Update existing partial bubble
-                     return [
-                        ...prev.slice(0, lastIdx),
-                        { ...lastItem, text, isPartial: !isFinal }
-                    ];
+                if (existingIdx > -1) {
+                     const newTranscript = [...prev];
+                     newTranscript[existingIdx] = { 
+                       ...newTranscript[existingIdx], 
+                       text, 
+                       isPartial: !isFinal 
+                     };
+                     return newTranscript;
                 } else {
                     return [
                         ...prev,
                         {
-                            id: `${now}-${Math.random()}`,
+                            id: turnId,
                             speaker,
                             text,
-                            timestamp: now,
+                            timestamp: Date.now(),
                             isPartial: !isFinal
                         }
                     ];
@@ -89,6 +117,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
             });
           },
           onEndSessionTriggered: () => {
+            setEndReason('manual'); // Triggered by AI tool call
             setIsEnding(true);
           }
         });
@@ -105,17 +134,22 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
       service.disconnect();
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, []);
+  }, [config, onEndSession]);
 
-  // Handle countdown logic
   useEffect(() => {
     let countdownInterval: number;
-    if (isEnding && countdown > 0) {
-        countdownInterval = window.setInterval(() => {
-            setCountdown((prev) => prev - 1);
-        }, 1000);
-    } else if (isEnding && countdown === 0) {
-        handleEndCall();
+    // Only start countdown if we are ending
+    if (isEnding) {
+         // Stop the main session timer so we don't keep triggering checks
+        if (timerRef.current) clearInterval(timerRef.current);
+
+        if (countdown > 0) {
+            countdownInterval = window.setInterval(() => {
+                setCountdown((prev) => prev - 1);
+            }, 1000);
+        } else if (countdown === 0) {
+            handleEndCall();
+        }
     }
     return () => clearInterval(countdownInterval);
   }, [isEnding, countdown]);
@@ -151,18 +185,38 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getEndStatusMessage = () => {
+      switch (endReason) {
+          case 'timeout': return "Time Limit Reached.";
+          case 'inactivity': return "Session Timeout.";
+          default: return "Interview Concluded.";
+      }
+  };
+
   return (
-    <div className="flex flex-col h-full bg-transparent min-h-0 relative">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-black min-h-0 relative transition-colors duration-500">
       <QuotaModal isOpen={showQuotaModal} onClose={() => setShowQuotaModal(false)} />
 
       {/* Auto-Disconnect Overlay */}
       {isEnding && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/90 dark:bg-black/90 backdrop-blur-sm animate-fade-in">
-            <div className="text-center">
+            <div className="text-center px-6">
                 <div className="text-8xl font-black text-black dark:text-white mb-6 animate-pulse">{countdown}</div>
-                <div className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                    Interview Concluded.
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                    {getEndStatusMessage()}
                 </div>
+                
+                {endReason === 'inactivity' && (
+                    <div className="text-xs font-medium text-red-500 mb-4">
+                        No activity detected for 3 minutes.
+                    </div>
+                )}
+                 {endReason === 'timeout' && (
+                    <div className="text-xs font-medium text-red-500 mb-4">
+                        Maximum interview duration of 20 minutes exceeded.
+                    </div>
+                )}
+
                 <div className="text-xs font-mono text-slate-400 mt-2">Generating Feedback Report...</div>
                 
                 <button 
@@ -186,7 +240,9 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
               </div>
             </div>
             {status === 'connected' && (
-              <div className="bg-slate-100 dark:bg-slate-900 px-3 py-1 text-[10px] font-mono font-bold text-slate-600 dark:text-slate-400">
+              <div className={`bg-slate-100 dark:bg-slate-900 px-3 py-1 text-[10px] font-mono font-bold transition-colors ${
+                  duration > MAX_INTERVIEW_DURATION - 60 ? 'text-red-500' : 'text-slate-600 dark:text-slate-400'
+              }`}>
                 {formatDuration(duration)}
               </div>
             )}
@@ -223,8 +279,12 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
                 </div>
             )}
 
-            {transcript.map((item) => (
-                <TranscriptMessage key={item.id} item={item} />
+            {transcript.map((item, index) => (
+                <TranscriptMessage 
+                    key={item.id} 
+                    item={item} 
+                    isSpeaking={isAiSpeaking && item.speaker === 'AI' && index === transcript.length - 1}
+                />
             ))}
         </div>
       </div>

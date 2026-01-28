@@ -33,7 +33,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <Layout onShowGuide={() => setShowGuide(true)}>
+    <Layout 
+      onShowGuide={() => setShowGuide(true)} 
+      hideSpotlight={screen === 'interview'}
+      hideGrid={false} // Always show grid as per latest request
+    >
       {showGuide && (
         <InfoModal 
           isOpen={showGuide} 

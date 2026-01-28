@@ -127,7 +127,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
   };
 
   return (
-    <div className="h-full flex flex-col items-center justify-center p-6 bg-transparent overflow-y-auto scrollbar-hide relative">
+    <div className="h-full flex flex-col items-center justify-center px-4 py-10 md:px-6 md:py-16 bg-transparent overflow-y-auto scrollbar-hide relative">
       <QuotaModal isOpen={showQuotaModal} onClose={() => setShowQuotaModal(false)} />
       
       <InfoModal 
@@ -150,22 +150,22 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
         <div className="w-[120%] h-[120%] bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02),transparent_65%)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.04),transparent_65%)] blur-2xl opacity-70" />
       </div>
       
-      <div className="w-full max-w-lg bg-slate-50/95 dark:bg-slate-950/95 border border-slate-200 dark:border-slate-800 p-8 md:p-12 animate-fade-in my-auto shadow-2xl relative transition-all duration-300 z-10 backdrop-blur-sm">
+      <div className="w-full max-w-lg bg-slate-50/95 dark:bg-slate-950/95 border border-slate-200 dark:border-slate-800 p-6 md:p-12 animate-fade-in my-auto shadow-2xl relative transition-all duration-300 z-10 backdrop-blur-sm">
         
-        <div className="mb-16">
-            <h1 className="text-7xl md:text-8xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85] select-none">
+        <div className="mb-10 md:mb-16">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85] select-none">
               Panel <span className="text-transparent bg-clip-text bg-gradient-to-br from-slate-400 to-slate-900 dark:from-slate-600 dark:to-white">AI</span>
             </h1>
-            <div className="flex items-center gap-4 mt-6">
-                <div className="h-[2px] w-10 bg-slate-900 dark:bg-white"></div>
-                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.35em]">
+            <div className="flex items-center gap-4 mt-4 md:mt-6">
+                <div className="h-[2px] w-6 md:w-10 bg-slate-900 dark:bg-white"></div>
+                <p className="text-[10px] md:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.35em]">
                   Realistic Mock Interview
                 </p>
             </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-12">
-          <div className="space-y-10">
+        <form onSubmit={handleSubmit} className="space-y-8 md:space-y-12">
+          <div className="space-y-6 md:space-y-10">
             <div className="flex flex-col space-y-2 relative" ref={dropdownRef}>
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-600">
                   Target Role
@@ -176,7 +176,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
                     required
                     autoComplete="off"
                     placeholder="e.g. Senior Software Engineer"
-                    className={`w-full bg-transparent border-b-2 py-2 text-xl font-medium text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-700 focus:outline-none transition-colors rounded-none ${
+                    className={`w-full bg-transparent border-b-2 py-2 text-lg md:text-xl font-medium text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-700 focus:outline-none transition-colors rounded-none ${
                         error 
                         ? 'border-red-500' 
                         : 'border-slate-200 dark:border-slate-800 focus:border-black dark:focus:border-white'
@@ -230,7 +230,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
                       key={type}
                       type="button"
                       onClick={() => setInterviewType(type)}
-                      className={`px-4 py-3 text-[10px] font-bold uppercase tracking-widest border transition-all duration-300 ${
+                      className={`px-3 md:px-4 py-2 md:py-3 text-[9px] md:text-[10px] font-bold uppercase tracking-widest border transition-all duration-300 ${
                         interviewType === type
                           ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white'
                           : 'bg-white/50 dark:bg-black/50 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600'
@@ -240,7 +240,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed min-h-[2.5rem] font-medium">
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed min-h-[2.5rem] font-medium hidden sm:block">
                   {INTERVIEW_TYPE_DESCRIPTIONS[interviewType]}
                 </p>
             </div>
@@ -250,23 +250,23 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-600">
                   Difficulty Level
                 </label>
-                <div className="flex gap-8">
+                <div className="flex flex-wrap gap-2">
                   {(['Easy', 'Medium', 'Hard'] as DifficultyLevel[]).map((level) => (
                     <button
                       key={level}
                       type="button"
                       onClick={() => setDifficulty(level)}
-                      className={`text-[10px] font-bold uppercase tracking-widest pb-1 border-b-2 transition-all duration-300 ${
+                      className={`px-3 md:px-4 py-2 md:py-3 text-[9px] md:text-[10px] font-bold uppercase tracking-widest border transition-all duration-300 ${
                         difficulty === level
-                          ? 'border-black text-black dark:border-white dark:text-white'
-                          : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-500'
+                          ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white'
+                          : 'bg-white/50 dark:bg-black/50 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600'
                       }`}
                     >
                       {level}
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed min-h-[2.5rem] font-medium">
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed min-h-[2.5rem] font-medium hidden sm:block">
                   {DIFFICULTY_DESCRIPTIONS[difficulty]}
                 </p>
               </div>
@@ -276,7 +276,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-600 flex items-center gap-1.5">
                     Personalize with Resume 
-                    <span className="text-slate-400 dark:text-slate-500 font-medium ml-1 text-[11px] whitespace-nowrap transition-all">(Optional)</span>
+                    <span className="text-slate-400 dark:text-slate-500 font-medium ml-1 text-[11px] whitespace-nowrap transition-all normal-case">(Optional)</span>
                   </label>
                   <button 
                     type="button" 
@@ -308,11 +308,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
             )}
           </div>
 
-          <div className="pt-4">
+          <div className="pt-2 md:pt-4">
             <button
               type="submit"
               disabled={!jobTitle.trim() || isSubmitting}
-              className={`w-full py-5 text-[11px] font-black uppercase tracking-[0.3em] transition-all shadow-xl flex items-center justify-center gap-3 ${
+              className={`w-full py-4 md:py-5 text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] transition-all shadow-xl flex items-center justify-center gap-3 ${
                 !jobTitle.trim() || isSubmitting
                   ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed shadow-none'
                   : 'bg-black text-white dark:bg-white dark:text-black hover:translate-y-[-2px] hover:shadow-2xl active:translate-y-[0px]'
