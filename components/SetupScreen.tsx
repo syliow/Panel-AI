@@ -16,6 +16,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
   const [jobTitle, setJobTitle] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [interviewType, setInterviewType] = useState<InterviewType>('Behavioral');
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('Medium');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
@@ -25,16 +26,29 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
   const [showResumeInfo, setShowResumeInfo] = useState(false);
   const [showQuotaModal, setShowQuotaModal] = useState(false);
 
-  const suggestionTimeoutRef = useRef<number | null>(null);
+  const suggestionTimeoutRef = useRef<number>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Autocomplete prediction logic
+  // Handle outside clicks to hide suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Autocomplete prediction logic using Flash Lite for speed
   useEffect(() => {
     if (jobTitle.length < 3) {
       setSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
 
-    if (suggestionTimeoutRef.current) clearTimeout(suggestionTimeoutRef.current);
+    if (suggestionTimeoutRef.current) window.clearTimeout(suggestionTimeoutRef.current);
 
     suggestionTimeoutRef.current = window.setTimeout(async () => {
       try {
@@ -42,7 +56,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
           model: 'gemini-flash-lite-latest',
-          contents: `Provide 5 common professional job title suggestions that start with or relate to: "${jobTitle}". Return only a JSON array of strings.`,
+          contents: `Provide exactly 5 highly professional and common job titles that start with or are closely related to: "${jobTitle}". Return as a raw JSON array of strings only.`,
           config: {
             responseMimeType: 'application/json',
             responseSchema: {
@@ -52,16 +66,18 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
           }
         });
         const result = JSON.parse(response.text || '[]');
-        setSuggestions(result.filter((s: string) => s.toLowerCase() !== jobTitle.toLowerCase()));
+        const filtered = result.filter((s: string) => s.toLowerCase() !== jobTitle.toLowerCase());
+        setSuggestions(filtered);
+        if (filtered.length > 0) setShowSuggestions(true);
       } catch (e) {
         console.error("Suggestion error", e);
       } finally {
         setIsSuggesting(false);
       }
-    }, 400); // 400ms debounce
+    }, 300); // 300ms debounce for near-instant feel
 
     return () => {
-      if (suggestionTimeoutRef.current) clearTimeout(suggestionTimeoutRef.current);
+      if (suggestionTimeoutRef.current) window.clearTimeout(suggestionTimeoutRef.current);
     };
   }, [jobTitle]);
 
@@ -71,6 +87,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
     
     setIsSubmitting(true);
     setError(null);
+    setShowSuggestions(false);
 
     let resumeContext = '';
     const formattedJobTitle = toTitleCase(jobTitle.trim());
@@ -129,64 +146,78 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
         }
       />
 
-      {/* Subtle Background Glow behind the card */}
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-0">
         <div className="w-[120%] h-[120%] bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02),transparent_65%)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.04),transparent_65%)] blur-2xl opacity-70" />
       </div>
       
-      {/* Main Card with subtle background color tint */}
       <div className="w-full max-w-lg bg-slate-50/95 dark:bg-slate-950/95 border border-slate-200 dark:border-slate-800 p-8 md:p-12 animate-fade-in my-auto shadow-2xl relative transition-all duration-300 z-10 backdrop-blur-sm">
         
-        <div className="mb-12">
-            <h1 className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85]">
-              Panel AI
+        <div className="mb-16">
+            <h1 className="text-7xl md:text-8xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85] select-none">
+              Panel <span className="text-transparent bg-clip-text bg-gradient-to-br from-slate-400 to-slate-900 dark:from-slate-600 dark:to-white">AI</span>
             </h1>
-            <p className="mt-2 text-lg font-bold text-slate-400 dark:text-slate-600 tracking-tight">
-              Realistic Mock Interview
-            </p>
+            <div className="flex items-center gap-4 mt-6">
+                <div className="h-[2px] w-10 bg-slate-900 dark:bg-white"></div>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.35em]">
+                  Realistic Mock Interview
+                </p>
+            </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-12">
           <div className="space-y-10">
-            <div className="flex flex-col space-y-2 relative">
+            <div className="flex flex-col space-y-2 relative" ref={dropdownRef}>
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-600">
                   Target Role
                 </label>
-                <input
-                  type="text"
-                  required
-                  autoComplete="off"
-                  placeholder="e.g. Senior Software Engineer"
-                  className={`w-full bg-transparent border-b-2 py-2 text-xl font-medium text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-700 focus:outline-none transition-colors rounded-none ${
-                      error 
-                      ? 'border-red-500' 
-                      : 'border-slate-200 dark:border-slate-800 focus:border-black dark:focus:border-white'
-                  }`}
-                  value={jobTitle}
-                  onChange={(e) => {
-                      setJobTitle(e.target.value);
-                      if (error) setError(null);
-                  }}
-                />
-                
-                {/* Autocomplete Suggestions */}
-                {suggestions.length > 0 && (
-                    <div className="absolute top-full left-0 w-full bg-white dark:bg-black border border-slate-200 dark:border-slate-800 shadow-2xl z-20 mt-1 flex flex-col">
-                        {suggestions.map((s, i) => (
-                            <button
-                                key={i}
-                                type="button"
-                                onClick={() => {
-                                    setJobTitle(s);
-                                    setSuggestions([]);
-                                }}
-                                className="px-4 py-3 text-left text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400 border-b border-slate-50 dark:border-slate-900 last:border-0 transition-colors"
-                            >
-                                {s}
-                            </button>
-                        ))}
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    autoComplete="off"
+                    placeholder="e.g. Senior Software Engineer"
+                    className={`w-full bg-transparent border-b-2 py-2 text-xl font-medium text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-700 focus:outline-none transition-colors rounded-none ${
+                        error 
+                        ? 'border-red-500' 
+                        : 'border-slate-200 dark:border-slate-800 focus:border-black dark:focus:border-white'
+                    }`}
+                    value={jobTitle}
+                    onFocus={() => {
+                        // Only show if we already have suggestions and user has typed enough
+                        if (suggestions.length > 0 && jobTitle.length >= 3) setShowSuggestions(true);
+                    }}
+                    onChange={(e) => {
+                        setJobTitle(e.target.value);
+                        if (error) setError(null);
+                    }}
+                  />
+                  
+                  {isSuggesting && (
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                      <div className="w-4 h-4 border-2 border-slate-200 dark:border-slate-800 border-t-black dark:border-t-white rounded-full animate-spin" />
                     </div>
-                )}
+                  )}
+
+                  {/* Autocomplete Suggestions UI */}
+                  {showSuggestions && suggestions.length > 0 && (
+                      <div className="absolute top-full left-0 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl z-20 mt-1 flex flex-col overflow-hidden">
+                          {suggestions.map((s, i) => (
+                              <button
+                                  key={i}
+                                  type="button"
+                                  onClick={() => {
+                                      setJobTitle(s);
+                                      setSuggestions([]);
+                                      setShowSuggestions(false);
+                                  }}
+                                  className="px-4 py-3 text-left text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 border-b border-slate-50 dark:border-slate-800 last:border-0 transition-colors"
+                              >
+                                  {s}
+                              </button>
+                          ))}
+                      </div>
+                  )}
+                </div>
             </div>
 
             <div className="flex flex-col space-y-4">
@@ -245,7 +276,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-600 flex items-center gap-1.5">
                     Personalize with Resume 
-                    <span className="text-slate-400 dark:text-slate-500 font-medium ml-1 text-[11px] whitespace-nowrap transition-all">Optional</span>
+                    <span className="text-slate-400 dark:text-slate-500 font-medium ml-1 text-[11px] whitespace-nowrap transition-all">(Optional)</span>
                   </label>
                   <button 
                     type="button" 
@@ -263,7 +294,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
                         type="file"
                         accept=".pdf,.png,.jpg,.jpeg,.txt"
                         onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-                        className="block w-full text-[10px] text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-[9px] file:font-black file:uppercase file:bg-slate-900 dark:file:bg-white file:text-white dark:file:text-black file:cursor-pointer hover:file:opacity-80 transition-all border-2 border-dashed border-slate-200 dark:border-slate-800 p-4 bg-white/30 dark:bg-black/30"
+                        className="block w-full text-[10px] text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-[9px] file:font-black file:uppercase file:bg-slate-900 dark:file:bg-white file:text-white dark:file:text-black file:cursor-pointer hover:file:opacity-80 transition-all border-2 border-dashed border-slate-200 dark:border-slate-800 p-4 bg-white/30 dark:bg-black/30 group-hover:border-slate-300 dark:group-hover:border-slate-700"
                     />
                 </div>
             </div>
