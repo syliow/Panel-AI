@@ -24,6 +24,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
     isAiSpeaking,
     duration,
     isEnding,
+    setIsEnding,
     endReason,
     showQuotaModal,
     setShowQuotaModal,
@@ -59,114 +60,85 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
 
   const getEndStatusMessage = () => {
       switch (endReason) {
-          case 'timeout': return "Time Limit Reached.";
-          case 'inactivity': return "Session Timeout.";
-          default: return "Interview Concluded.";
+        case 'timeout': return 'Time Limit Reached';
+        case 'inactivity': return 'Session Timeout (Inactivity)';
+        case 'manual': return 'Ending Session...';
+        default: return 'Session Ended';
       }
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-black min-h-0 relative transition-colors duration-500">
+    <div className="flex flex-col h-full relative bg-slate-50 dark:bg-black transition-colors w-full">
       <QuotaModal isOpen={showQuotaModal} onClose={() => setShowQuotaModal(false)} />
 
-      {isEnding && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/90 dark:bg-black/90 backdrop-blur-sm animate-fade-in">
-            <div className="text-center px-6">
-                <div className="text-8xl font-black text-black dark:text-white mb-6 animate-pulse">{countdown}</div>
-                <div className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
-                    {getEndStatusMessage()}
-                </div>
-                
-                {endReason === 'inactivity' && (
-                    <div className="text-xs font-medium text-red-500 mb-4">
-                        No activity detected for 3 minutes.
-                    </div>
-                )}
-                 {endReason === 'timeout' && (
-                    <div className="text-xs font-medium text-red-500 mb-4">
-                        Maximum interview duration reached.
-                    </div>
-                )}
+      {/* Header Info Pill */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur border border-slate-200 dark:border-slate-800 rounded-full px-4 py-1.5 shadow-sm flex items-center gap-3">
+         <div className={`h-2 w-2 rounded-full ${status === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></div>
+         <span className="text-[10px] font-bold uppercase tracking-widest tabular-nums text-slate-600 dark:text-slate-300">
+            {formatDuration(duration)} / {formatDuration(MAX_INTERVIEW_DURATION)}
+         </span>
+      </div>
 
-                <div className="text-xs font-mono text-slate-400 mt-2">Generating Feedback Report...</div>
-                
-                <button 
-                   onClick={handleEndCall}
-                   className="mt-10 px-8 py-3 bg-black dark:bg-white text-white dark:text-black hover:opacity-80 transition-opacity text-xs font-bold uppercase tracking-widest"
-                >
-                    End Now
-                </button>
-            </div>
+      {/* Transcript Area */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-16 scrollbar-hide flex flex-col items-center w-full" ref={scrollRef}>
+          <div className="w-full max-w-3xl flex flex-col justify-end min-h-full pb-4">
+            {transcript.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center opacity-40">
+                   <p className="text-xs font-bold uppercase tracking-widest text-slate-500 text-center">
+                      Connecting to Interviewer...<br/>
+                      <span className="text-[10px] font-normal opacity-70 mt-2 block">Please allow microphone access if prompted.</span>
+                   </p>
+                </div>
+            ) : (
+                transcript.map((item, index) => (
+                    <TranscriptMessage 
+                        key={item.id} 
+                        item={item} 
+                        isSpeaking={isAiSpeaking && item.speaker === 'AI' && index === transcript.length - 1} 
+                    />
+                ))
+            )}
+            
+            {/* Visualizer / Status when connecting or empty */}
+            {status === 'connecting' && transcript.length === 0 && (
+                 <div className="mt-8 flex justify-center gap-1">
+                    <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce"></div>
+                    <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce [animation-delay:0.1s]"></div>
+                    <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                 </div>
+            )}
+
+            {error && (
+                <div className="w-full text-center p-4 my-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-600 dark:text-red-400 text-xs font-bold animate-fade-in">
+                    {error}
+                </div>
+            )}
+          </div>
+      </div>
+
+      {/* Ending Overlay */}
+      {isEnding && (
+        <div className="absolute inset-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center animate-fade-in">
+           <div className="text-center p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">{getEndStatusMessage()}</p>
+              <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white mb-6 tabular-nums">
+                  {countdown}
+              </h2>
+              <button onClick={handleEndCall} className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black text-xs font-bold uppercase tracking-widest hover:opacity-80 transition-opacity">
+                  End Now
+              </button>
+           </div>
         </div>
       )}
 
-      <header className="flex-none border-b border-slate-100 dark:border-slate-900 px-8 py-5 bg-white/80 dark:bg-black/80 backdrop-blur-md z-10 transition-colors duration-300">
-        <div className="max-w-3xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-6">
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white leading-none">{config.jobTitle}</h2>
-              <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  {config.interviewType} {config.difficulty ? ` // ${config.difficulty}` : ''}
-              </div>
-            </div>
-            {status === 'connected' && (
-              <div className={`bg-slate-100 dark:bg-slate-900 px-3 py-1 text-[10px] font-mono font-bold transition-colors ${
-                  duration > MAX_INTERVIEW_DURATION - 60 ? 'text-red-500' : 'text-slate-600 dark:text-slate-400'
-              }`}>
-                {formatDuration(duration)}
-              </div>
-            )}
-          </div>
-          
-          <div className={`text-[10px] font-black uppercase tracking-widest ${status === 'error' ? 'text-red-500' : 'text-slate-300 dark:text-slate-600'}`}>
-             {status === 'connected' ? 'LIVE SESSION' : status === 'error' ? 'CONNECTION ERROR' : 'INITIALIZING...'}
-          </div>
-        </div>
-      </header>
-
-      <div 
-        className="flex-grow overflow-y-auto px-4 md:px-0 py-8 scrollbar-hide min-h-0" 
-        ref={scrollRef}
-      >
-        <div className="max-w-3xl mx-auto pb-10">
-            {transcript.length === 0 && status === 'connected' && (
-                <div className="flex flex-col items-center justify-center h-64 text-slate-300 dark:text-slate-700 animate-fade-in">
-                    <p className="text-xs font-bold tracking-[0.2em] uppercase">Say "Hello" to begin</p>
-                </div>
-            )}
-            
-            {status === 'error' && (
-                <div className="flex flex-col items-center justify-center h-64 text-center animate-fade-in px-6">
-                    <p className="text-lg font-bold text-red-500 mb-2">Connection Failed</p>
-                    <p className="text-sm text-slate-500 mb-6">{error || 'Please check your network and try again.'}</p>
-                    <button 
-                        onClick={() => window.location.reload()}
-                        className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black text-xs font-bold uppercase tracking-widest hover:opacity-80 transition-opacity"
-                    >
-                        Return to Setup
-                    </button>
-                </div>
-            )}
-
-            {transcript.map((item, index) => (
-                <TranscriptMessage 
-                    key={item.id} 
-                    item={item} 
-                    isSpeaking={isAiSpeaking && item.speaker === 'AI' && index === transcript.length - 1}
-                />
-            ))}
-        </div>
-      </div>
-
-      <div className="backdrop-blur-md bg-white/90 dark:bg-black/90 transition-colors duration-300">
-        <ControlBar 
-            isMuted={isMuted}
-            onToggleMute={toggleMute}
-            onEndCall={handleEndCall}
-            isActive={status === 'connected'}
-            volumeLevel={volume}
-        />
-      </div>
+      {/* Controls */}
+      <ControlBar 
+        isMuted={isMuted} 
+        onToggleMute={toggleMute} 
+        onEndCall={() => setIsEnding(true)} 
+        isActive={status === 'connected' && !isEnding}
+        volumeLevel={volume}
+      />
     </div>
   );
 };

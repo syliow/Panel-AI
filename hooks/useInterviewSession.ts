@@ -128,6 +128,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
     isAiSpeaking,
     duration,
     isEnding,
+    setIsEnding,
     endReason,
     showQuotaModal,
     setShowQuotaModal,
