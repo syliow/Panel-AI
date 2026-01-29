@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { DIFFICULTY_DESCRIPTIONS, INTERVIEW_TYPE_DESCRIPTIONS, INTERVIEW_TYPES } from '../constants';
-import { parseResume } from '../services/resumeService';
-import { validateJobTitle } from '../services/validationService';
-import { DifficultyLevel, InterviewConfig, InterviewType } from '../types';
-import { toTitleCase } from '../utils/stringUtils';
-import { QuotaModal } from './QuotaModal';
-import { InfoModal } from './InfoModal';
-import { useJobTitleSuggestions } from '../hooks/useJobTitleSuggestions';
+import { DIFFICULTY_DESCRIPTIONS, INTERVIEW_TYPE_DESCRIPTIONS, INTERVIEW_TYPES } from '../constants.ts';
+import { parseResume } from '../services/resumeService.ts';
+import { validateJobTitle } from '../services/validationService.ts';
+import { DifficultyLevel, InterviewConfig, InterviewType } from '../types.ts';
+import { toTitleCase } from '../utils/stringUtils.ts';
+import { QuotaModal } from './QuotaModal.tsx';
+import { InfoModal } from './InfoModal.tsx';
+import { useJobTitleSuggestions } from '../hooks/useJobTitleSuggestions.ts';
 
 interface SetupScreenProps {
   onStart: (config: InterviewConfig) => void;
@@ -103,7 +103,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
     <div className="h-full flex flex-col relative bg-transparent">
       <QuotaModal isOpen={showQuotaModal} onClose={() => setShowQuotaModal(false)} />
       
-      {/* Floating Tooltip Component - Nested structure to separate positioning from animation */}
+      {/* Floating Tooltip Component */}
       {tooltip && (
         <div 
           className="fixed z-[100] pointer-events-none"
@@ -112,9 +112,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
             top: `${tooltip.y}px`,
           }}
         >
-          {/* Structural wrapper handles positioning relative to the target */}
           <div className="transform -translate-x-1/2 -translate-y-full">
-            {/* Animated content wrapper handles the fade-in and visual styling */}
             <div className="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[10px] font-bold tracking-tight rounded shadow-2xl px-3 py-2 text-center animate-fade-in max-w-[200px] relative">
               {tooltip.text}
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-slate-900 dark:border-t-slate-100"></div>
@@ -138,7 +136,6 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
         }
       />
 
-      {/* Main Scrollable Content Area */}
       <div className="flex-1 w-full overflow-y-auto scrollbar-hide flex flex-col items-center justify-center p-4 md:p-6">
         <div className="w-full max-w-lg bg-slate-50/95 dark:bg-slate-950/95 border border-slate-200 dark:border-slate-800 p-6 md:p-12 animate-fade-in shadow-2xl relative transition-all duration-300 z-10 backdrop-blur-sm my-auto">
           

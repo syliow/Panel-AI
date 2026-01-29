@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { SetupScreen } from './components/SetupScreen';
-import { InterviewScreen } from './components/InterviewScreen';
-import { FeedbackScreen } from './components/FeedbackScreen';
-import { InterviewConfig, TranscriptItem } from './types';
-import { Layout } from './components/Layout';
-import { InfoModal } from './components/InfoModal';
-import { APP_DESCRIPTION } from './constants';
+import { SetupScreen } from './components/SetupScreen.tsx';
+import { InterviewScreen } from './components/InterviewScreen.tsx';
+import { FeedbackScreen } from './components/FeedbackScreen.tsx';
+import { InterviewConfig, TranscriptItem } from './types.ts';
+import { Layout } from './components/Layout.tsx';
+import { InfoModal } from './components/InfoModal.tsx';
+import { APP_DESCRIPTION } from './constants.ts';
 
 type Screen = 'setup' | 'interview' | 'feedback';
 
@@ -36,7 +36,7 @@ const App: React.FC = () => {
     <Layout 
       onShowGuide={() => setShowGuide(true)} 
       hideSpotlight={screen === 'interview'}
-      hideGrid={false} // Always show grid as per latest request
+      hideGrid={false}
     >
       {showGuide && (
         <InfoModal 
@@ -98,7 +98,7 @@ const App: React.FC = () => {
                   </div>
                   <div className="flex gap-4">
                     <div className="h-6 w-6 rounded-full bg-slate-900 dark:bg-white text-white dark:text-black flex items-center justify-center text-[10px] font-bold shrink-0">2</div>
-                    <p className="text-xs leading-relaxed"><span className="font-bold text-slate-900 dark:text-white">Personalize with Resume (Optional):</span> Upload your resume to give the interviewer more context about your specific background and past projects.</p>
+                    <p className="text-xs leading-relaxed"><span className="font-bold text-slate-900 dark:text-white">Grant Microphone Access:</span> The browser will ask for permission. <span className="text-amber-600 dark:text-amber-500 font-bold italic">This app cannot function without it.</span></p>
                   </div>
                   <div className="flex gap-4">
                     <div className="h-6 w-6 rounded-full bg-slate-900 dark:bg-white text-white dark:text-black flex items-center justify-center text-[10px] font-bold shrink-0">3</div>

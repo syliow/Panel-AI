@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { GeminiLiveService, GeminiLiveCallbacks } from '../services/geminiLive';
-import { InterviewConfig, TranscriptItem, ConnectionStatus } from '../types';
-import { MAX_INTERVIEW_DURATION, INACTIVITY_TIMEOUT_MS } from '../constants';
+import { GeminiLiveService, GeminiLiveCallbacks } from '../services/geminiLive.ts';
+import { InterviewConfig, TranscriptItem, ConnectionStatus } from '../types.ts';
+import { MAX_INTERVIEW_DURATION, INACTIVITY_TIMEOUT_MS } from '../constants.ts';
 
 export function useInterviewSession(config: InterviewConfig, onSessionEnd: (transcript: TranscriptItem[]) => void) {
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
@@ -12,7 +12,6 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [duration, setDuration] = useState(0);
   
-  // End session states
   const [isEnding, setIsEnding] = useState(false);
   const [endReason, setEndReason] = useState<'manual' | 'timeout' | 'inactivity'>('manual');
   const [showQuotaModal, setShowQuotaModal] = useState(false);
@@ -21,20 +20,17 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
   const lastActivityRef = useRef<number>(Date.now());
   const timerRef = useRef<number | null>(null);
 
-  // Helper to safely disconnect
   const disconnect = useCallback(async () => {
     if (serviceRef.current) {
       await serviceRef.current.disconnect();
     }
   }, []);
 
-  // Trigger ending flow
   const handleEndCall = useCallback(async () => {
     await disconnect();
     onSessionEnd(transcript);
   }, [disconnect, onSessionEnd, transcript]);
 
-  // Main connection effect
   useEffect(() => {
     const service = new GeminiLiveService();
     serviceRef.current = service;
@@ -45,7 +41,6 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
         setStatus('connected');
         setError(null);
         
-        // Start the session timer and inactivity checker
         timerRef.current = window.setInterval(() => {
           setDuration(prev => {
             const next = prev + 1;
@@ -84,7 +79,6 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
         if (speaking) lastActivityRef.current = Date.now();
       },
       onTranscript: (text: string, speaker: 'AI' | 'Candidate', isFinal: boolean, turnId: string) => {
-        // Reset inactivity on any transcript update
         lastActivityRef.current = Date.now();
         
         setTranscript(prev => {
@@ -106,7 +100,6 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
       }
     };
 
-    // Initiate connection
     service.connect(config, callbacks).catch(err => {
         setStatus('error');
         setError(err.message);
@@ -116,7 +109,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
       disconnect();
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [config, disconnect]); // Dependencies: config only changes on new session
+  }, [config, disconnect]);
 
   const toggleMute = () => {
     if (serviceRef.current) {

@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import { FeedbackData, InterviewConfig, TranscriptItem } from '../types';
-import { checkRateLimit, isQuotaError, RateLimitError } from '../utils/apiUtils';
+import { FeedbackData, InterviewConfig, TranscriptItem } from '../types.ts';
+import { checkRateLimit, isQuotaError, RateLimitError } from '../utils/apiUtils.ts';
 
 export async function generateInterviewFeedback(
   transcript: TranscriptItem[],

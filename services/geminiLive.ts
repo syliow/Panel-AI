@@ -1,8 +1,8 @@
 import { FunctionDeclaration, GoogleGenAI, LiveServerMessage, Modality, Type } from '@google/genai';
-import { MODEL_NAME, SYSTEM_PROMPT_TEMPLATE } from '../constants';
-import { InterviewConfig } from '../types';
-import { createPcmBlob, decodeAudioData, decodeBase64 } from '../utils/audioUtils';
-import { isQuotaError } from '../utils/apiUtils';
+import { MODEL_NAME, SYSTEM_PROMPT_TEMPLATE } from '../constants.ts';
+import { InterviewConfig } from '../types.ts';
+import { createPcmBlob, decodeAudioData, decodeBase64 } from '../utils/audioUtils.ts';
+import { isQuotaError } from '../utils/apiUtils.ts';
 
 const INPUT_SAMPLE_RATE = 16000;
 const OUTPUT_SAMPLE_RATE = 24000;

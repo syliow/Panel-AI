@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { InterviewConfig, TranscriptItem } from '../types';
-import { ControlBar } from './ControlBar';
-import { TranscriptMessage } from './TranscriptMessage';
-import { QuotaModal } from './QuotaModal';
-import { MAX_INTERVIEW_DURATION } from '../constants';
-import { useInterviewSession } from '../hooks/useInterviewSession';
+import { InterviewConfig, TranscriptItem } from '../types.ts';
+import { ControlBar } from './ControlBar.tsx';
+import { TranscriptMessage } from './TranscriptMessage.tsx';
+import { QuotaModal } from './QuotaModal.tsx';
+import { MAX_INTERVIEW_DURATION } from '../constants.ts';
+import { useInterviewSession } from '../hooks/useInterviewSession.ts';
 
 interface InterviewScreenProps {
   config: InterviewConfig;
@@ -32,14 +32,12 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
     stopTimer
   } = useInterviewSession(config, onEndSession);
 
-  // Auto-scroll effect
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [transcript]);
 
-  // UI specific countdown for ending
   useEffect(() => {
     let countdownInterval: number;
     if (isEnding) {
@@ -71,7 +69,6 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
     <div className="flex flex-col h-full bg-slate-50 dark:bg-black min-h-0 relative transition-colors duration-500">
       <QuotaModal isOpen={showQuotaModal} onClose={() => setShowQuotaModal(false)} />
 
-      {/* Auto-Disconnect Overlay */}
       {isEnding && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/90 dark:bg-black/90 backdrop-blur-sm animate-fade-in">
             <div className="text-center px-6">
@@ -87,7 +84,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
                 )}
                  {endReason === 'timeout' && (
                     <div className="text-xs font-medium text-red-500 mb-4">
-                        Maximum interview duration of 20 minutes exceeded.
+                        Maximum interview duration reached.
                     </div>
                 )}
 
@@ -103,7 +100,6 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
         </div>
       )}
 
-      {/* Session Context Header */}
       <header className="flex-none border-b border-slate-100 dark:border-slate-900 px-8 py-5 bg-white/80 dark:bg-black/80 backdrop-blur-md z-10 transition-colors duration-300">
         <div className="max-w-3xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-6">
@@ -128,7 +124,6 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
         </div>
       </header>
 
-      {/* Transcript Area */}
       <div 
         className="flex-grow overflow-y-auto px-4 md:px-0 py-8 scrollbar-hide min-h-0" 
         ref={scrollRef}
@@ -163,7 +158,6 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
         </div>
       </div>
 
-      {/* Controls */}
       <div className="backdrop-blur-md bg-white/90 dark:bg-black/90 transition-colors duration-300">
         <ControlBar 
             isMuted={isMuted}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { generateInterviewFeedback } from '../services/feedbackService';
-import { FeedbackData, InterviewConfig, TranscriptItem } from '../types';
-import { QuotaModal } from './QuotaModal';
+import { generateInterviewFeedback } from '../services/feedbackService.ts';
+import { FeedbackData, InterviewConfig, TranscriptItem } from '../types.ts';
+import { QuotaModal } from './QuotaModal.tsx';
 
 interface FeedbackScreenProps {
   transcript: TranscriptItem[];
