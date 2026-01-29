@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyTurnstileToken } from '@/utils/turnstile';
 
 // Simple in-memory rate limiter (resets on server restart)
 // For production, use Redis or a proper rate limiting service
 const rateLimit = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 10; // 10 requests per minute per IP
+
+export const dynamic = 'force-dynamic';
 
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
@@ -32,7 +35,10 @@ function checkRateLimit(ip: string): boolean {
 // This endpoint provides the API key for the Gemini Live connection
 // Security measures implemented:
 // 1. Rate limiting per IP
-// 2. Origin validation (optional - commented out for development)
+// 2. Cloudflare Turnstile bot protection
+// 3. Origin validation (optional - commented out for development)
+
+// Keep GET for backward compatibility (without Turnstile)
 export async function GET(request: NextRequest) {
   const clientIP = getClientIP(request);
   
@@ -44,30 +50,49 @@ export async function GET(request: NextRequest) {
     );
   }
   
-  // Optional: Origin validation for production
-  // Uncomment and set your domain when deploying
-  /*
-  const origin = request.headers.get('origin');
-  const allowedOrigins = [
-    'https://yourdomain.netlify.app',
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3002',
-  ];
-  
-  if (origin && !allowedOrigins.includes(origin)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-  */
-  
   const apiKey = process.env.GEMINI_API_KEY;
   
   if (!apiKey) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
   }
 
-  // Return the API key for the live session
-  // Note: The Gemini Live API requires direct WebSocket connection from client,
-  // so we must provide the key. Rate limiting helps prevent abuse.
   return NextResponse.json({ apiKey });
+}
+
+// POST with Turnstile verification (preferred)
+export async function POST(request: NextRequest) {
+  const clientIP = getClientIP(request);
+  
+  // Rate limiting
+  if (!checkRateLimit(clientIP)) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' }, 
+      { status: 429 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const { turnstileToken } = body;
+
+    // Verify Turnstile token (bot protection)
+    const turnstileResult = await verifyTurnstileToken(turnstileToken, clientIP);
+    if (!turnstileResult.success) {
+      return NextResponse.json(
+        { error: turnstileResult.error || 'Security verification failed' }, 
+        { status: 403 }
+      );
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
+    }
+
+    return NextResponse.json({ apiKey });
+  } catch (error) {
+    console.error('Live session error:', error);
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+  }
 }

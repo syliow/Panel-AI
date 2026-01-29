@@ -5,6 +5,8 @@ import { InterviewConfig, TranscriptItem } from '@/types';
 import { ControlBar } from './ControlBar';
 import { TranscriptMessage } from './TranscriptMessage';
 import { QuotaModal } from './QuotaModal';
+import { RateLimitModal } from './RateLimitModal';
+import { useTurnstile } from './Turnstile';
 import { MAX_INTERVIEW_DURATION } from '@/constants';
 import { useInterviewSession } from '@/hooks/useInterviewSession';
 
@@ -16,6 +18,9 @@ interface InterviewScreenProps {
 export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndSession }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [countdown, setCountdown] = useState(5);
+  
+  // Turnstile bot protection
+  const { token: turnstileToken, isVerified, handleVerify, TurnstileWidget } = useTurnstile();
 
   const {
     status,
@@ -31,12 +36,16 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
     endReason,
     showQuotaModal,
     setShowQuotaModal,
+    showRateLimitModal,
+    setShowRateLimitModal,
+    rateLimitType,
     toggleMute,
     handleEndCall,
     startInterview,
     stopTimer
   } = useInterviewSession(config, onEndSession);
 
+  // Auto-scroll transcript to bottom
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -114,9 +123,12 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
                          </p>
                       </div>
                       
+                      {/* Invisible Turnstile Widget - verifies in background */}
+                      <TurnstileWidget size="invisible" />
+                      
                       {/* Start Button */}
                       <button
-                         onClick={startInterview}
+                         onClick={() => startInterview(turnstileToken || undefined)}
                          className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-black dark:bg-white text-white dark:text-black text-sm font-bold uppercase tracking-widest hover:scale-105 transition-all shadow-xl hover:shadow-2xl"
                       >
                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -125,9 +137,9 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
                          Start Interview
                       </button>
                       
-                      {/* Hint */}
-                      <p className="text-xs text-slate-400 dark:text-slate-600 max-w-xs mx-auto">
-                         Click the button above or just say <span className="font-bold text-slate-600 dark:text-slate-400">&quot;Hello&quot;</span> to begin. Make sure your microphone is enabled.
+                      {/* Simple hint */}
+                      <p className="text-xs text-slate-400 dark:text-slate-600 max-w-xs mx-auto text-center">
+                        Click the button above to begin your interview
                       </p>
                    </div>
                 </div>
@@ -149,12 +161,32 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
                 </div>
             )}
             
-            {/* Connected but waiting for first message */}
-            {hasStarted && status === 'connected' && transcript.length === 0 && (
-                <div className="flex-1 flex flex-col items-center justify-center opacity-50">
-                   <p className="text-xs font-bold uppercase tracking-widest text-slate-500 text-center">
-                      Waiting for interviewer...
-                   </p>
+            {/* Connected - waiting for user to greet */}
+            {hasStarted && status === 'connected' && transcript.length === 0 && !isAiSpeaking && (
+                <div className="flex-1 flex flex-col items-center justify-center p-8">
+                   <div className="text-center space-y-6 max-w-md">
+                      {/* Microphone icon */}
+                      <div className="flex justify-center">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20"></div>
+                          <div className="relative bg-emerald-500 p-6 rounded-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Instruction */}
+                      <div className="space-y-3">
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                          Ready to Start
+                        </h3>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          Say <span className="font-bold text-emerald-600 dark:text-emerald-400">"Hello"</span>, <span className="font-bold text-emerald-600 dark:text-emerald-400">"Start"</span>, or <span className="font-bold text-emerald-600 dark:text-emerald-400">"Hi"</span> to begin the interview
+                        </p>
+                      </div>
+                   </div>
                 </div>
             )}
             
@@ -202,6 +234,13 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
           volumeLevel={volume}
         />
       )}
+
+      {/* Rate Limit Modal */}
+      <RateLimitModal 
+        isOpen={showRateLimitModal}
+        onClose={() => setShowRateLimitModal(false)}
+        limitType={rateLimitType}
+      />
     </div>
   );
 };
