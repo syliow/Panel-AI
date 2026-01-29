@@ -1,7 +1,0 @@
-{
-  "name": "Panel AI",
-  "description": "Professional real-time interview simulation platform.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
-}

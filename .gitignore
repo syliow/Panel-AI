@@ -9,6 +9,8 @@ coverage
 # Production
 build
 dist
+.next
+out
 
 # Misc
 .DS_Store
@@ -21,3 +23,7 @@ dist
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Next.js
+*.tsbuildinfo
+next-env.d.ts

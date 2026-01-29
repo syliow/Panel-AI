@@ -1,40 +1,133 @@
-# Panel AI 🎙️
+# Panel AI
 
-Professional real-time interview simulation platform powered by Gemini Live.
+A realistic mock interview simulator powered by Google's Gemini AI. Practice your interview skills with an AI interviewer that adapts to your responses in real-time.
 
-## 📋 Project Outline
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/syliow/Panel-AI)
 
-Panel AI is a voice-first application designed to simulate high-stakes job interviews. It provides a low-latency, natural conversational experience, allowing candidates to practice answering behavioral, technical, and general interview questions with a realistic AI persona.
+## Features
 
-### 🏛️ Architecture & Structure
+- **Live Audio Interaction**: Real-time voice interaction using Gemini's native audio engine
+- **Expert Personas**: AI adapts personality and questions based on role and interview type
+- **Resume Analysis**: Upload your resume for personalized questions
+- **Comprehensive Feedback**: Detailed scoring, speech analysis, and ideal answer templates
 
-The project is organized into functional categories to maintain scalability and readability:
+## Tech Stack
 
-*   **`components/`**: UI Building blocks (Layout, Setup, Interview, Feedback, etc.)
-*   **`services/`**: Core logic and API integrations (Gemini Live, Resume Parsing, Validation)
-*   **`hooks/`**: React custom hooks for session management and UI logic
-*   **`utils/`**: Helper functions for audio processing, string manipulation, and API safety
-*   **`types.ts`**: Global TypeScript definitions
-*   **`constants.ts`**: Application configuration and system prompt templates
+- **Framework**: Next.js 15 (App Router)
+- **AI**: Google Gemini API (Live Audio + Text generation)
+- **Styling**: Tailwind CSS
+- **Language**: TypeScript
+- **Deployment**: Netlify
 
-### ✨ Core Features
+## Getting Started
 
-1.  **Real-Time Voice Call**: Low-latency interaction using Gemini 2.5 Flash Native Audio.
-2.  **Adaptive Personas**: AI transitions between Hiring Manager, Tech Lead, or Recruiter based on session config.
-3.  **Resume Integration**: Context-aware questioning based on uploaded candidate history.
-4.  **Speech Analytics**: Post-interview analysis of WPM, filler words, and clarity.
-5.  **Comparative Feedback**: "Ideal Answer" generation for self-improvement.
+### Prerequisites
 
-### 🛠️ Technical Implementation
+- Node.js 18+
+- A Google Gemini API key
 
-*   **Audio Engine**: Manual PCM resampling (16kHz in / 24kHz out) for Gemini Live compatibility.
-*   **UI/UX**: Responsive Tailwind CSS design with dark mode, ambient mesh backgrounds, and reactive visualizers.
-*   **State Management**: Complex session lifecycle handling including inactivity timeouts and manual disconnects.
+### Installation
 
-## 🚀 Getting Started
+1. Clone the repository:
 
-1.  Set your `GEMINI_API_KEY` in the environment.
-2.  Grant microphone permissions.
-3.  Choose your target role and begin.
+   ```bash
+   git clone https://github.com/syliow/Panel-AI.git
+   cd Panel-AI
+   ```
 
-*Note: Requires a browser supporting Web Audio and getUserMedia.*
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Create a `.env.local` file in the root directory:
+
+   ```
+   GEMINI_API_KEY=your_gemini_api_key_here
+   ```
+
+4. Run the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Deployment
+
+### Netlify (Recommended)
+
+1. **Connect Repository**: Link your GitHub repository to Netlify
+
+2. **Configure Build Settings**:
+   - Build command: `npm run build`
+   - Publish directory: `.next`
+
+3. **Set Environment Variables**:
+   In Netlify dashboard → Site Settings → Environment Variables:
+
+   ```
+   GEMINI_API_KEY = your_gemini_api_key_here
+   ```
+
+4. **Deploy**: Netlify will automatically install `@netlify/plugin-nextjs`
+
+### Manual Build
+
+```bash
+# Production build
+npm run build
+
+# Start production server
+npm start
+```
+
+## Environment Variables
+
+| Variable         | Description                | Required |
+| ---------------- | -------------------------- | -------- |
+| `GEMINI_API_KEY` | Your Google Gemini API key | Yes      |
+
+## Project Structure
+
+```
+Panel-AI/
+├── src/
+│   ├── app/
+│   │   ├── api/              # Server-side API routes
+│   │   │   ├── feedback/     # Feedback generation
+│   │   │   ├── resume/       # Resume parsing
+│   │   │   ├── suggestions/  # Job title suggestions
+│   │   │   ├── validate-title/ # Job title validation
+│   │   │   └── live-session/ # Live session initialization
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/           # React components
+│   ├── hooks/                # Custom React hooks
+│   ├── services/             # Client-side service layer
+│   ├── utils/                # Utility functions
+│   ├── constants.ts
+│   └── types.ts
+├── netlify.toml              # Netlify configuration
+├── next.config.ts
+├── tailwind.config.js
+└── package.json
+```
+
+## Security
+
+- API keys are stored server-side and never exposed in client bundles
+- All AI API calls (except real-time audio) are routed through Next.js API routes
+- Client-side rate limiting to prevent abuse
+- Security headers configured for production
+
+## License
+
+MIT
+
+## Author
+
+Developed by [Shanyi Liow](https://liowshanyi.site)
