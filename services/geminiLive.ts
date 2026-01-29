@@ -4,7 +4,6 @@ import { InterviewConfig } from '../types';
 import { createPcmBlob, decodeAudioData, decodeBase64 } from '../utils/audioUtils';
 import { isQuotaError } from '../utils/apiUtils';
 
-// Audio Context Constants
 const INPUT_SAMPLE_RATE = 16000;
 const OUTPUT_SAMPLE_RATE = 24000;
 const BUFFER_SIZE = 4096;
@@ -19,39 +18,49 @@ export interface GeminiLiveCallbacks {
   onAiSpeaking: (isSpeaking: boolean) => void;
 }
 
-const endInterviewTool: FunctionDeclaration = {
+const END_INTERVIEW_TOOL: FunctionDeclaration = {
   name: 'endInterview',
-  parameters: {
-    type: Type.OBJECT,
-    properties: {},
+  parameters: { 
+    type: Type.OBJECT, 
+    properties: {
+      reason: {
+        type: Type.STRING,
+        description: "The reason for ending the interview (e.g., 'finished', 'user_request')."
+      }
+    },
+    required: ['reason']
   },
   description: 'Call this function to end the interview session when the conversation is concluded.',
 };
 
 export class GeminiLiveService {
   private ai: GoogleGenAI | null = null;
-  private inputAudioContext: AudioContext | null = null;
-  private outputAudioContext: AudioContext | null = null;
+  private inputContext: AudioContext | null = null;
+  private outputContext: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
-  private scriptProcessor: ScriptProcessorNode | null = null;
-  private inputSource: MediaStreamAudioSourceNode | null = null;
   private outputNode: GainNode | null = null;
-  private nextStartTime: number = 0;
   private activeSources: Set<AudioBufferSourceNode> = new Set();
   private sessionPromise: Promise<any> | null = null; 
+  
+  private nextStartTime: number = 0;
   private isMuted: boolean = false;
   private isDisconnecting: boolean = false;
-  
-  // Transcription state
-  private currentInputTranscription: string = '';
-  private currentOutputTranscription: string = '';
-  private currentInputTurnId: string = 'user-' + Math.random().toString(36).substring(7);
-  private currentOutputTurnId: string = 'ai-' + Math.random().toString(36).substring(7);
-
-  // Session ending state
   private pendingEndSession: boolean = false;
 
-  constructor() {}
+  // Transcript tracking
+  private currentInputTranscription: string = '';
+  private currentOutputTranscription: string = '';
+  private currentInputTurnId: string = '';
+  private currentOutputTurnId: string = '';
+
+  constructor() {
+    this.resetTurnIds();
+  }
+
+  private resetTurnIds() {
+    this.currentInputTurnId = 'user-' + Math.random().toString(36).substring(7);
+    this.currentOutputTurnId = 'ai-' + Math.random().toString(36).substring(7);
+  }
 
   public async connect(config: InterviewConfig, callbacks: GeminiLiveCallbacks) {
     const apiKey = process.env.API_KEY;
@@ -59,47 +68,11 @@ export class GeminiLiveService {
       callbacks.onError("Service unavailable: Missing configuration.");
       return;
     }
+
     this.ai = new GoogleGenAI({ apiKey });
+    this.initializeAudioContext();
 
-    // Initialize Audio
-    try {
-      this.inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
-        sampleRate: INPUT_SAMPLE_RATE,
-      });
-      this.outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
-        sampleRate: OUTPUT_SAMPLE_RATE,
-      });
-      
-      this.outputNode = this.outputAudioContext.createGain();
-      this.outputNode.connect(this.outputAudioContext.destination);
-    } catch (e) {
-      console.error("Failed to initialize AudioContext");
-    }
-
-    // Dynamic prompt logic
-    let difficultyContext = '';
-    let personaContext = '';
-    let assessmentInstructions = '';
-
-    if (config.interviewType === 'Technical') {
-        const diff = config.difficulty || 'Medium';
-        difficultyContext = `**Difficulty Level:** ${diff}`;
-        personaContext = `You are Panel AI, an expert Engineering Lead conducting a technical interview for the ${config.jobTitle} position.`;
-        if (diff === 'Easy') assessmentInstructions = `Ask basic fundamental questions.`;
-        else if (diff === 'Hard') assessmentInstructions = `Ask complex system design and performance questions.`;
-        else assessmentInstructions = `Ask standard coding and practical scenario questions.`;
-    } else {
-        personaContext = `You are Panel AI, a Senior Hiring Manager conducting a ${config.interviewType} interview.`;
-        assessmentInstructions = `Ask role-specific behavioral or general screening questions.`;
-    }
-
-    const systemInstruction = SYSTEM_PROMPT_TEMPLATE
-      .replace('{{JOB_TITLE}}', config.jobTitle)
-      .replace('{{INTERVIEW_TYPE}}', config.interviewType)
-      .replace('{{DIFFICULTY_CONTEXT}}', difficultyContext)
-      .replace('{{PERSONA_CONTEXT}}', personaContext)
-      .replace('{{CORE_ASSESSMENT_INSTRUCTIONS}}', assessmentInstructions)
-      .replace('{{RESUME_CONTEXT}}', config.resumeContext || 'No resume provided.');
+    const systemInstruction = this.buildSystemPrompt(config);
 
     try {
         this.sessionPromise = this.ai.live.connect({
@@ -107,32 +80,21 @@ export class GeminiLiveService {
           callbacks: {
             onopen: async () => {
               callbacks.onOpen();
-              await this.startAudioCapture();
+              await this.startAudioInput(callbacks);
             },
-            onmessage: async (message: LiveServerMessage) => {
-              this.handleMessage(message, callbacks);
-            },
+            onmessage: async (msg) => this.handleMessage(msg, callbacks),
             onclose: (e) => callbacks.onClose(e),
-            onerror: (e) => {
-                console.error('Gemini Live Socket Error:', e instanceof Error ? e.message : String(e));
-                let message = e instanceof Error ? e.message : 'Connection error';
-                if (isQuotaError(e) || message.includes('429')) {
-                    message = "QUOTA_EXCEEDED";
-                } else if (message.includes('not implemented') || message.includes('not found')) {
-                   message = 'Live session failed. Please ensure your configuration supports real-time features.';
-                }
-                callbacks.onError(message);
-            },
+            onerror: (e) => this.handleError(e, callbacks),
           },
           config: {
             responseModalities: [Modality.AUDIO],
             speechConfig: {
               voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
             },
-            systemInstruction: systemInstruction,
+            systemInstruction,
             inputAudioTranscription: {}, 
             outputAudioTranscription: {},
-            tools: [{ functionDeclarations: [endInterviewTool] }]
+            tools: [{ functionDeclarations: [END_INTERVIEW_TOOL] }]
           },
         });
     } catch (err: any) {
@@ -140,15 +102,110 @@ export class GeminiLiveService {
     }
   }
 
-  private async startAudioCapture() {
+  private initializeAudioContext() {
+    try {
+      this.inputContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: INPUT_SAMPLE_RATE });
+      this.outputContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: OUTPUT_SAMPLE_RATE });
+      
+      this.outputNode = this.outputContext.createGain();
+      this.outputNode.connect(this.outputContext.destination);
+    } catch (e) {
+      console.error("AudioContext initialization failed", e);
+    }
+  }
+
+  private buildSystemPrompt(config: InterviewConfig): string {
+    let difficultyContext = '';
+    let personaContext = '';
+    let assessmentInstructions = '';
+    
+    // Clean up job title for the prompt
+    const jobRole = config.jobTitle;
+
+    switch (config.interviewType) {
+      case 'Technical':
+        const diff = config.difficulty || 'Medium';
+        difficultyContext = `**Difficulty Level:** ${diff}`;
+        
+        personaContext = `You are **Panel AI**, a pragmatic and experienced **Senior Staff Engineer**.
+        You are conducting a technical deep-dive for a **${jobRole}** candidate.
+        
+        **Tone & Style:**
+        - Professional, direct, and slightly skeptical.
+        - You value precision, efficiency, and scalability.
+        - You dislike buzzwords; you want to know *how* things work under the hood.
+        - If the candidate is vague, press them for technical details.`;
+
+        if (diff === 'Easy') {
+            assessmentInstructions = `
+            - Topic 1: Fundamental concepts and basic definitions relevant to ${jobRole}.
+            - Topic 2: A simple practical scenario (e.g., debugging a common issue).`;
+        } else if (diff === 'Hard') {
+            assessmentInstructions = `
+            - Topic 1: Complex system design or architecture relevant to a Senior ${jobRole}.
+            - Topic 2: Scalability, edge cases, and handling constraints (e.g., "10x traffic").
+            - Topic 3: Deep dive into trade-offs (e.g., Consistency vs Availability, SQL vs NoSQL).`;
+        } else {
+            assessmentInstructions = `
+            - Topic 1: Standard industry practices and patterns for ${jobRole}.
+            - Topic 2: Code/Architecture explanation of a recent project.
+            - Topic 3: Practical trade-off scenarios and decision making.`;
+        }
+        break;
+
+      case 'Behavioral':
+        personaContext = `You are **Panel AI**, a **Director of Engineering** or **Hiring Manager** focused on culture and leadership.
+        You are interviewing a **${jobRole}** candidate to assess their soft skills.
+        
+        **Tone & Style:**
+        - Professional, attentive, and emotionally intelligent.
+        - You focus on the **STAR method** (Situation, Task, Action, Result).
+        - You are looking for signs of ownership, conflict resolution, and growth mindset.
+        - If the candidate uses "We" too much, ask "What exactly did *you* do?".`;
+        
+        assessmentInstructions = `
+        - Topic 1: A time they faced a significant challenge or conflict. (Dig into their specific actions).
+        - Topic 2: A time they failed or made a mistake. (Focus on ownership and learning).
+        - Topic 3: Experience with cross-functional collaboration or disagreement.`;
+        break;
+
+      case 'General':
+        personaContext = `You are **Panel AI**, a Senior **Technical Recruiter** at a top-tier tech company.
+        You are conducting the initial phone screen for a **${jobRole}** position.
+        
+        **Tone & Style:**
+        - Warm, energetic, professional, and structured.
+        - You want to assess high-level fit, communication skills, and enthusiasm.
+        - You are not testing deep technical code, but rather the candidate's background and career goals.`;
+        
+        assessmentInstructions = `
+        - Topic 1: Their professional background and narrative ("Tell me about yourself").
+        - Topic 2: Motivation for this specific ${jobRole} role and company fit.
+        - Topic 3: Career goals, timeline, and what they are looking for next.`;
+        break;
+        
+      default:
+         personaContext = `You are Panel AI, a professional interviewer for the ${jobRole} position.`;
+         assessmentInstructions = `Conduct a professional interview suitable for the role, covering experience, skills, and goals.`;
+    }
+
+    return SYSTEM_PROMPT_TEMPLATE
+      .replace('{{JOB_TITLE}}', config.jobTitle)
+      .replace('{{INTERVIEW_TYPE}}', config.interviewType)
+      .replace('{{DIFFICULTY_CONTEXT}}', difficultyContext)
+      .replace('{{PERSONA_CONTEXT}}', personaContext)
+      .replace('{{CORE_ASSESSMENT_INSTRUCTIONS}}', assessmentInstructions)
+      .replace('{{RESUME_CONTEXT}}', config.resumeContext || 'No resume provided.');
+  }
+
+  private async startAudioInput(callbacks: GeminiLiveCallbacks) {
+    if (!this.inputContext) return;
     try {
       this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (!this.inputAudioContext) return;
+      const source = this.inputContext.createMediaStreamSource(this.mediaStream);
+      const processor = this.inputContext.createScriptProcessor(BUFFER_SIZE, 1, 1);
 
-      this.inputSource = this.inputAudioContext.createMediaStreamSource(this.mediaStream);
-      this.scriptProcessor = this.inputAudioContext.createScriptProcessor(BUFFER_SIZE, 1, 1);
-
-      this.scriptProcessor.onaudioprocess = (e) => {
+      processor.onaudioprocess = (e) => {
         if (this.isMuted || !this.sessionPromise || this.isDisconnecting) return;
         const inputData = e.inputBuffer.getChannelData(0);
         const pcmBlob = createPcmBlob(inputData);
@@ -159,14 +216,16 @@ export class GeminiLiveService {
         }).catch(() => {});
       };
 
-      this.inputSource.connect(this.scriptProcessor);
-      this.scriptProcessor.connect(this.inputAudioContext.destination);
+      source.connect(processor);
+      processor.connect(this.inputContext.destination);
     } catch (err) {
-      console.error("Mic access failed");
+      console.error("Microphone access failed", err);
+      callbacks.onError("Microphone access denied.");
     }
   }
 
   private async handleMessage(message: LiveServerMessage, callbacks: GeminiLiveCallbacks) {
+    // 1. Handle Transcriptions
     if (message.serverContent?.outputTranscription) {
       this.currentOutputTranscription += message.serverContent.outputTranscription.text;
       callbacks.onTranscript(this.currentOutputTranscription, 'AI', false, this.currentOutputTurnId);
@@ -175,46 +234,42 @@ export class GeminiLiveService {
       callbacks.onTranscript(this.currentInputTranscription, 'Candidate', false, this.currentInputTurnId);
     }
 
+    // 2. Handle Turn Completion (Reset IDs)
     if (message.serverContent?.turnComplete) {
-      if (this.currentInputTranscription.trim()) {
-        callbacks.onTranscript(this.currentInputTranscription, 'Candidate', true, this.currentInputTurnId);
-      }
-      if (this.currentOutputTranscription.trim()) {
-        callbacks.onTranscript(this.currentOutputTranscription, 'AI', true, this.currentOutputTurnId);
-      }
+      if (this.currentInputTranscription.trim()) callbacks.onTranscript(this.currentInputTranscription, 'Candidate', true, this.currentInputTurnId);
+      if (this.currentOutputTranscription.trim()) callbacks.onTranscript(this.currentOutputTranscription, 'AI', true, this.currentOutputTurnId);
       
-      // Reset for next turn - ensures fresh IDs for new messages
       this.currentInputTranscription = '';
       this.currentOutputTranscription = '';
-      this.currentInputTurnId = 'user-' + Math.random().toString(36).substring(7);
-      this.currentOutputTurnId = 'ai-' + Math.random().toString(36).substring(7);
+      this.resetTurnIds();
     }
 
+    // 3. Handle Tool Calls (End Interview)
     if (message.toolCall) {
-        for (const fc of message.toolCall.functionCalls) {
-            if (fc.name === 'endInterview') {
-                this.pendingEndSession = true;
-                this.checkEndSession(callbacks);
-                this.sessionPromise?.then(session => session.sendToolResponse({
-                    functionResponses: { id: fc.id, name: fc.name, response: { result: "ok" } }
-                }));
-            }
+        const endCall = message.toolCall.functionCalls.find(fc => fc.name === 'endInterview');
+        if (endCall) {
+            this.pendingEndSession = true;
+            this.checkEndSession(callbacks);
+            this.sessionPromise?.then(session => session.sendToolResponse({
+                functionResponses: [{ id: endCall.id, name: endCall.name, response: { result: "ok" } }]
+            }));
         }
     }
 
+    // 4. Handle Audio Output
     const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-    if (base64Audio && this.outputAudioContext && this.outputNode && !this.isDisconnecting) {
+    if (base64Audio && this.outputContext && this.outputNode && !this.isDisconnecting) {
         try {
             const audioBytes = decodeBase64(base64Audio);
-            let sum = 0;
-            const sampleSize = Math.min(audioBytes.length, 50);
-            for(let i=0; i<sampleSize; i++) sum += Math.abs(audioBytes[i] - 128);
-            callbacks.onAudioData(sum / sampleSize);
+            // Calculate volume for visualizer
+            const sum = audioBytes.reduce((acc, byte) => acc + Math.abs(byte - 128), 0);
+            callbacks.onAudioData(sum / Math.min(audioBytes.length, 50));
 
-            this.nextStartTime = Math.max(this.nextStartTime, this.outputAudioContext.currentTime);
-            const audioBuffer = await decodeAudioData(audioBytes, this.outputAudioContext, OUTPUT_SAMPLE_RATE, 1);
+            // Queue Audio
+            this.nextStartTime = Math.max(this.nextStartTime, this.outputContext.currentTime);
+            const audioBuffer = await decodeAudioData(audioBytes, this.outputContext, OUTPUT_SAMPLE_RATE, 1);
 
-            const source = this.outputAudioContext.createBufferSource();
+            const source = this.outputContext.createBufferSource();
             source.buffer = audioBuffer;
             source.connect(this.outputNode);
             source.addEventListener('ended', () => {
@@ -226,17 +281,24 @@ export class GeminiLiveService {
             this.nextStartTime += audioBuffer.duration;
             this.activeSources.add(source);
             if (this.activeSources.size === 1) callbacks.onAiSpeaking(true);
-        } catch (e) { 
-            console.error("Audio error during playback");
-        }
+
+        } catch (e) { console.error("Audio playback error", e); }
     }
 
+    // 5. Handle Interruption
     if (message.serverContent?.interrupted) {
       this.activeSources.forEach(s => { try { s.stop(); } catch(e){} });
       this.activeSources.clear();
       callbacks.onAiSpeaking(false);
       this.nextStartTime = 0;
     }
+  }
+
+  private handleError(e: any, callbacks: GeminiLiveCallbacks) {
+    console.error('Gemini Live Socket Error:', e);
+    let msg = e instanceof Error ? e.message : 'Connection error';
+    if (isQuotaError(e) || msg.includes('429')) msg = "QUOTA_EXCEEDED";
+    callbacks.onError(msg);
   }
 
   private checkEndSession(callbacks: GeminiLiveCallbacks) {
@@ -259,25 +321,19 @@ export class GeminiLiveService {
 
     if (this.sessionPromise) {
       const session = await this.sessionPromise;
-      if (session && session.close) try { session.close(); } catch(e) {}
+      if (session?.close) try { session.close(); } catch(e) {}
       this.sessionPromise = null;
     }
 
     this.activeSources.forEach(s => { try { s.stop(); } catch(e){} });
     this.activeSources.clear();
 
-    // Fix for "Cannot close a closed AudioContext"
-    if (this.inputAudioContext) {
-        if (this.inputAudioContext.state !== 'closed') {
-            try { await this.inputAudioContext.close(); } catch(e) {}
-        }
-        this.inputAudioContext = null;
-    }
-    if (this.outputAudioContext) {
-        if (this.outputAudioContext.state !== 'closed') {
-            try { await this.outputAudioContext.close(); } catch(e) {}
-        }
-        this.outputAudioContext = null;
-    }
+    const safeClose = async (ctx: AudioContext | null) => {
+        if (ctx && ctx.state !== 'closed') try { await ctx.close(); } catch(e) {}
+    };
+    await Promise.all([safeClose(this.inputContext), safeClose(this.outputContext)]);
+    
+    this.inputContext = null;
+    this.outputContext = null;
   }
 }
