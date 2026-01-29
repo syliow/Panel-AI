@@ -51,29 +51,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
       onOpen: () => {
         setStatus('connected');
         setError(null);
-        
-        // Clear any existing timer first to prevent duplicates
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-        
-        // Timer starts HERE - only after connection is established
-        timerRef.current = window.setInterval(() => {
-          setDuration(prev => {
-            const next = prev + 1;
-            if (next >= MAX_INTERVIEW_DURATION) {
-              setEndReason('timeout');
-              setIsEnding(true);
-            }
-            return next;
-          });
-          
-          if (Date.now() - lastActivityRef.current > INACTIVITY_TIMEOUT_MS) {
-            setEndReason('inactivity');
-            setIsEnding(true);
-          }
-        }, 1000);
+        // Timer does NOT start here anymore (waits for first interaction)
       },
       onClose: () => {
         setStatus('disconnected');
@@ -119,6 +97,25 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
       },
       onTranscript: (text: string, speaker: 'AI' | 'Candidate', isFinal: boolean, turnId: string) => {
         lastActivityRef.current = Date.now();
+        
+        // Start timer on FIRST transcript if not running
+        if (!timerRef.current) {
+            timerRef.current = window.setInterval(() => {
+              setDuration(prev => {
+                const next = prev + 1;
+                if (next >= MAX_INTERVIEW_DURATION) {
+                  setEndReason('timeout');
+                  setIsEnding(true);
+                }
+                return next;
+              });
+              
+              if (Date.now() - lastActivityRef.current > INACTIVITY_TIMEOUT_MS) {
+                setEndReason('inactivity');
+                setIsEnding(true);
+              }
+            }, 1000);
+        }
         
         setTranscript(prev => {
             const existingIdx = prev.findIndex(item => item.id === turnId);
