@@ -10,8 +10,8 @@ export async function parseResume(file: File): Promise<string> {
     throw new RateLimitError("Please wait a moment before uploading again.");
   }
 
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("API Key missing");
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY missing");
 
   const ai = new GoogleGenAI({ apiKey });
   

@@ -17,7 +17,7 @@ export function useJobTitleSuggestions(input: string) {
     timeoutRef.current = window.setTimeout(async () => {
       setIsLoading(true);
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
         const response = await ai.models.generateContent({
           model: 'gemini-flash-lite-latest',
           contents: `Provide exactly 5 highly professional and common job titles that start with or are closely related to: "${input}". Return as a raw JSON array of strings only.`,

@@ -33,7 +33,7 @@ The project is organized into functional categories to maintain scalability and 
 
 ## 🚀 Getting Started
 
-1.  Set your `API_KEY` in the environment.
+1.  Set your `GEMINI_API_KEY` in the environment.
 2.  Grant microphone permissions.
 3.  Choose your target role and begin.
 

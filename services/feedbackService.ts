@@ -11,9 +11,9 @@ export async function generateInterviewFeedback(
      throw new RateLimitError("Please wait before regenerating feedback.");
   }
 
-  const apiKey = process.env.API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("API Key is missing");
+    throw new Error("GEMINI_API_KEY is missing");
   }
 
   const ai = new GoogleGenAI({ apiKey });

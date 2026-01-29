@@ -63,7 +63,7 @@ export class GeminiLiveService {
   }
 
   public async connect(config: InterviewConfig, callbacks: GeminiLiveCallbacks) {
-    const apiKey = process.env.API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       callbacks.onError("Service unavailable: Missing configuration.");
       return;

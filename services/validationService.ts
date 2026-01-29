@@ -10,8 +10,8 @@ export async function validateJobTitle(jobTitle: string): Promise<{ isValid: boo
     return { isValid: true };
   }
 
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("API Key missing");
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY missing");
   
   const ai = new GoogleGenAI({ apiKey });
 
