@@ -1,8 +1,8 @@
 # Panel AI
 
 A realistic mock interview simulator powered by Google's Gemini AI. Practice your interview skills with an AI interviewer that adapts to your responses in real-time.
+<img width="1639" height="940" alt="panelAiImg" src="https://github.com/user-attachments/assets/180f2b3a-f90d-490b-baaf-eee372a7a9d1" />
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/syliow/Panel-AI)
 
 ## Features
 
@@ -123,10 +123,6 @@ Panel-AI/
 - All AI API calls (except real-time audio) are routed through Next.js API routes
 - Client-side rate limiting to prevent abuse
 - Security headers configured for production
-
-## License
-
-MIT
 
 ## Author
 
