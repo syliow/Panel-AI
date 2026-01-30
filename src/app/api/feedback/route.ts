@@ -49,13 +49,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { transcript, config, turnstileToken } = body;
-
-    // Verify Turnstile token (bot protection)
-    const turnstileResult = await verifyTurnstileToken(turnstileToken, clientIP);
-    if (!turnstileResult.success) {
-      return NextResponse.json({ error: turnstileResult.error || 'Security verification failed' }, { status: 403 });
-    }
+    const { transcript, config } = body;
 
     // Input validation
     if (!transcript || !Array.isArray(transcript)) {

@@ -3,8 +3,7 @@ import { checkRateLimit, RateLimitError } from '@/utils/apiUtils';
 
 export async function generateInterviewFeedback(
   transcript: TranscriptItem[],
-  config: InterviewConfig,
-  turnstileToken?: string
+  config: InterviewConfig
 ): Promise<FeedbackData> {
   // Rate Limit: 1 request per 10 seconds
   if (!checkRateLimit('generate_feedback', 10000)) {
@@ -14,7 +13,7 @@ export async function generateInterviewFeedback(
   const response = await fetch('/api/feedback', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ transcript, config, turnstileToken }),
+    body: JSON.stringify({ transcript, config }),
   });
 
   if (!response.ok) {

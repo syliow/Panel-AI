@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { generateInterviewFeedback } from '@/services/feedbackService';
 import { FeedbackData, InterviewConfig, TranscriptItem } from '@/types';
 import { QuotaModal } from './QuotaModal';
-import { useTurnstile } from './Turnstile';
 
 interface FeedbackScreenProps {
   transcript: TranscriptItem[];
@@ -19,15 +18,12 @@ export const FeedbackScreen: React.FC<FeedbackScreenProps> = ({ transcript, conf
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showQuotaModal, setShowQuotaModal] = useState(false);
   
-  // Turnstile bot protection
-  const { token: turnstileToken, TurnstileWidget } = useTurnstile();
-
   const handleGenerateFeedback = async () => {
     if (transcript.length === 0) return;
     setLoading(true);
     setErrorMsg(null);
     try {
-        const data = await generateInterviewFeedback(transcript, config, turnstileToken || undefined);
+        const data = await generateInterviewFeedback(transcript, config);
         setFeedback(data);
         setShowAnalysis(true);
     } catch (e: unknown) {
@@ -93,9 +89,6 @@ export const FeedbackScreen: React.FC<FeedbackScreenProps> = ({ transcript, conf
                     </div>
                  </div>
                  {errorMsg && <p className="text-[10px] text-red-600 dark:text-red-400 font-bold text-center italic">{errorMsg}</p>}
-                 
-                 {/* Invisible Turnstile Widget - verifies in background */}
-                 <TurnstileWidget size="invisible" />
                  
                  <div className="flex flex-col sm:flex-row gap-4">
                      <button onClick={handleGenerateFeedback} disabled={loading || transcript.length === 0} className="flex-1 py-4 bg-black dark:bg-white text-white dark:text-black text-[10px] font-bold uppercase tracking-widest hover:opacity-90 transition-all">{loading ? 'Analyzing...' : 'Generate Full Report'}</button>
