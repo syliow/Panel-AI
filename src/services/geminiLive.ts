@@ -62,19 +62,38 @@ export class GeminiLiveService {
     this.currentOutputTurnId = 'ai-' + Math.random().toString(36).substring(7);
   }
 
-  public async connect(config: InterviewConfig, callbacks: GeminiLiveCallbacks) {
+  public async connect(config: InterviewConfig, callbacks: GeminiLiveCallbacks, turnstileToken?: string) {
     // Fetch API key from server
     let apiKey: string;
     try {
-      const response = await fetch('/api/live-session');
+      // Use POST with Turnstile token if available, otherwise fall back to GET
+      const fetchOptions: RequestInit = turnstileToken 
+        ? {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ turnstileToken })
+          }
+        : { method: 'GET' };
+      
+      const response = await fetch('/api/live-session', fetchOptions);
       if (!response.ok) {
-        callbacks.onError("Service unavailable: Failed to initialize session.");
-        return;
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
-      const data = await response.json();
-      apiKey = data.apiKey;
-    } catch {
-      callbacks.onError("Service unavailable: Network error.");
+      
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        const data = await response.json();
+        apiKey = data.apiKey;
+      } else {
+        const text = await response.text();
+        console.error("Received non-JSON response:", text.substring(0, 500));
+        throw new Error("Invalid server response (not JSON)");
+      }
+    } catch (e) {
+      console.error("Session initialization failed:", e);
+      const errorMessage = e instanceof Error ? e.message : "Failed to initialize session. Please try again.";
+      callbacks.onError(errorMessage);
       return;
     }
 
@@ -94,7 +113,18 @@ export class GeminiLiveService {
           callbacks: {
             onopen: async () => {
               callbacks.onOpen();
+              
+              // Ensure audio context is running (fixes autoplay issues)
+              if (this.outputContext && this.outputContext.state === 'suspended') {
+                await this.outputContext.resume();
+              }
+              
               await this.startAudioInput(callbacks);
+              
+              // The Gemini Live API requires user audio input to trigger a response.
+              // We'll wait briefly for the mic to capture ambient audio, then the AI will respond.
+              // The system prompt instructs it to speak first.
+              console.log('Session connected - microphone active, AI will respond to audio input');
             },
             onmessage: async (msg) => this.handleMessage(msg, callbacks),
             onclose: (e) => callbacks.onClose(e),
@@ -209,7 +239,8 @@ export class GeminiLiveService {
       .replace('{{DIFFICULTY_CONTEXT}}', difficultyContext)
       .replace('{{PERSONA_CONTEXT}}', personaContext)
       .replace('{{CORE_ASSESSMENT_INSTRUCTIONS}}', assessmentInstructions)
-      .replace('{{RESUME_CONTEXT}}', config.resumeContext || 'No resume provided.');
+      .replace('{{RESUME_CONTEXT}}', config.resumeContext || 'No resume provided.') + 
+      "\n\nIMPORTANT: AS SOON AS THE SESSION STARTS, YOU MUST SPEAK FIRST. INTRODUCE YOURSELF AND THE INTERVIEW IMMEDIATELY. DO NOT WAIT FOR THE USER.";
   }
 
   private async startAudioInput(callbacks: GeminiLiveCallbacks) {
@@ -329,26 +360,71 @@ export class GeminiLiveService {
   public async disconnect() {
     if (this.isDisconnecting) return;
     this.isDisconnecting = true;
+    
+    console.log('Starting disconnect...');
 
+    // IMMEDIATELY stop all active audio sources
+    this.activeSources.forEach(s => { 
+      try { 
+        s.stop(0); // Stop immediately, not scheduled
+        s.disconnect();
+      } catch (e) { 
+        console.warn('Error stopping source:', e);
+      } 
+    });
+    this.activeSources.clear();
+    console.log('Stopped all audio sources');
+
+    // Disconnect and null out the output node
+    if (this.outputNode) {
+      try { 
+        this.outputNode.disconnect(); 
+        this.outputNode.gain.value = 0; // Mute it
+      } catch (e) {
+        console.warn('Error disconnecting output node:', e);
+      }
+      this.outputNode = null;
+    }
+
+    // Stop microphone stream
     if (this.mediaStream) {
         this.mediaStream.getTracks().forEach(t => t.stop());
         this.mediaStream = null;
     }
 
+    // Close WebSocket session
     if (this.session) {
-      try { this.session.close(); } catch { /* ignore */ }
+      try { this.session.close(); } catch (e) {
+        console.warn('Error closing session:', e);
+      }
       this.session = null;
     }
 
-    this.activeSources.forEach(s => { try { s.stop(); } catch { /* ignore */ } });
-    this.activeSources.clear();
-
-    const safeClose = async (ctx: AudioContext | null) => {
-        if (ctx && ctx.state !== 'closed') try { await ctx.close(); } catch { /* ignore */ }
+    // Suspend contexts BEFORE closing (helps stop audio faster)
+    const safeSuspendAndClose = async (ctx: AudioContext | null, name: string) => {
+        if (!ctx) return;
+        try {
+          if (ctx.state === 'running') {
+            await ctx.suspend();
+            console.log(`Suspended ${name} context`);
+          }
+          if (ctx.state !== 'closed') {
+            await ctx.close();
+            console.log(`Closed ${name} context`);
+          }
+        } catch (e) {
+          console.warn(`Error closing ${name} context:`, e);
+        }
     };
-    await Promise.all([safeClose(this.inputContext), safeClose(this.outputContext)]);
+    
+    await Promise.all([
+      safeSuspendAndClose(this.inputContext, 'input'),
+      safeSuspendAndClose(this.outputContext, 'output')
+    ]);
     
     this.inputContext = null;
     this.outputContext = null;
+    
+    console.log('Disconnect complete - all resources cleaned up');
   }
 }

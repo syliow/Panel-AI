@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyTurnstileToken } from '@/utils/turnstile';
 
 // Rate limiting
 const rateLimit = new Map<string, { count: number; resetTime: number }>();
@@ -48,7 +49,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { transcript, config } = body;
+    const { transcript, config, turnstileToken } = body;
+
+    // Verify Turnstile token (bot protection)
+    const turnstileResult = await verifyTurnstileToken(turnstileToken, clientIP);
+    if (!turnstileResult.success) {
+      return NextResponse.json({ error: turnstileResult.error || 'Security verification failed' }, { status: 403 });
+    }
 
     // Input validation
     if (!transcript || !Array.isArray(transcript)) {
@@ -105,72 +112,67 @@ export async function POST(request: NextRequest) {
       ${transcriptText}
 
       **Task:**
-      1. Overall Score (0-100).
-      2. Metrics (1-10) for 3-4 categories.
-      3. Strengths & Improvements.
-      4. **Speech Analysis**: Estimate filler word usage (um, uh, like) and clarity.
-      5. **Ideal Answers**: Identify the 2 most important questions asked by the AI. For each, show the user's answer and write a "Better/Ideal Answer" that would score 10/10.
+      Return a VALID JSON object (and nothing else) with this exact structure:
+      {
+        "strengths": ["List of strings"],
+        "improvements": ["List of strings"],
+        "summary": "Full text summary",
+        "overallScore": number (0-100),
+        "metrics": [
+           { "category": "String", "score": number (1-10), "reason": "reason" }
+        ],
+        "speechAnalysis": {
+           "wpm": number,
+           "fillerWordCount": number,
+           "clarityScore": number (1-10),
+           "feedback": "string"
+        },
+        "questionAnalysis": [
+           {
+             "question": "string",
+             "userAnswer": "string",
+             "feedback": "string",
+             "idealAnswer": "string (perfect answer example)"
+           }
+        ]
+      }
+      Return ONLY raw JSON. No markdown backticks or conversational text.
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-flash-lite-latest',
+      model: 'gemma-3-27b-it',
       contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
-            improvements: { type: Type.ARRAY, items: { type: Type.STRING } },
-            summary: { type: Type.STRING },
-            overallScore: { type: Type.NUMBER },
-            metrics: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  category: { type: Type.STRING },
-                  score: { type: Type.NUMBER },
-                  reason: { type: Type.STRING }
-                },
-                required: ['category', 'score', 'reason']
-              }
-            },
-            speechAnalysis: {
-              type: Type.OBJECT,
-              properties: {
-                wpm: { type: Type.NUMBER, description: 'Estimated Words Per Minute' },
-                fillerWordCount: { type: Type.NUMBER, description: "Estimated count of 'um', 'uh', 'like'" },
-                clarityScore: { type: Type.NUMBER, description: '1-10 score for speech clarity' },
-                feedback: { type: Type.STRING, description: 'Feedback on pacing and tone' }
-              },
-              required: ['wpm', 'fillerWordCount', 'clarityScore', 'feedback']
-            },
-            questionAnalysis: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  question: { type: Type.STRING },
-                  userAnswer: { type: Type.STRING },
-                  feedback: { type: Type.STRING },
-                  idealAnswer: { type: Type.STRING, description: 'An example of a 10/10 perfect answer to this question' }
-                },
-                required: ['question', 'userAnswer', 'feedback', 'idealAnswer']
-              }
-            }
-          },
-          required: ['strengths', 'improvements', 'summary', 'overallScore', 'metrics', 'speechAnalysis', 'questionAnalysis']
-        }
-      }
     });
 
-    const jsonText = response.text;
+    let jsonText = response.text || '';
+    
+    // Clean and extract braces
+    jsonText = jsonText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const startIdx = jsonText.indexOf('{');
+    const endIdx = jsonText.lastIndexOf('}');
+    if (startIdx !== -1 && endIdx !== -1) {
+      jsonText = jsonText.substring(startIdx, endIdx + 1);
+    }
+
     if (!jsonText) {
       return NextResponse.json({ error: 'Empty response from AI' }, { status: 500 });
     }
 
-    return NextResponse.json(JSON.parse(jsonText));
+    try {
+      return NextResponse.json(JSON.parse(jsonText));
+    } catch (e) {
+      console.error('Feedback JSON Parse Error:', jsonText);
+      return NextResponse.json({ 
+        error: 'Failed to parse feedback',
+        summary: 'Feedback was generated but the format was invalid. Please try again.',
+        overallScore: 50,
+        strengths: [],
+        improvements: [],
+        metrics: [],
+        speechAnalysis: { wpm: 0, fillerWordCount: 0, clarityScore: 5, feedback: 'Error processing speech metrics' },
+        questionAnalysis: []
+      });
+    }
   } catch (error: unknown) {
     console.error('Feedback generation error:', error instanceof Error ? error.message : 'Unknown error');
     

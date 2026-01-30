@@ -64,18 +64,26 @@ export async function POST(request: NextRequest) {
     const ai = new GoogleGenAI({ apiKey });
 
     const response = await ai.models.generateContent({
-      model: 'gemini-flash-lite-latest',
-      contents: `Provide exactly 5 highly professional and common job titles that start with or are closely related to: "${sanitizedInput}". Return as a raw JSON array of strings only.`,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING }
-        }
-      }
+      model: 'gemma-3-4b-it',
+      contents: `Provide exactly 5 highly professional and common job titles that start with or are closely related to: "${sanitizedInput}". Return as a raw JSON array of strings only. Example: ["Title 1", "Title 2"]. Do not include markdown or conversational text.`,
     });
 
-    const result = JSON.parse(response.text || '[]');
+    let text = response.text || '[]';
+    // Clean markdown and extract bracketed array
+    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const startIdx = text.indexOf('[');
+    const endIdx = text.lastIndexOf(']');
+    if (startIdx !== -1 && endIdx !== -1) {
+      text = text.substring(startIdx, endIdx + 1);
+    }
+
+    let result = [];
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      console.error('JSON parse error in suggestions:', text);
+      result = [];
+    }
     // Filter out exact match and limit to 5
     const filtered = result
       .filter((s: string) => s.toLowerCase() !== sanitizedInput.toLowerCase())

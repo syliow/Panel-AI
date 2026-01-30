@@ -18,6 +18,8 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
   const [isEnding, setIsEnding] = useState(false);
   const [endReason, setEndReason] = useState<'manual' | 'timeout' | 'inactivity'>('manual');
   const [showQuotaModal, setShowQuotaModal] = useState(false);
+  const [showRateLimitModal, setShowRateLimitModal] = useState(false);
+  const [rateLimitType, setRateLimitType] = useState<'rpm' | 'tpm' | 'rpd' | 'general'>('general');
 
   const serviceRef = useRef<GeminiLiveService | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
@@ -35,7 +37,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
   }, [disconnect, onSessionEnd, transcript]);
 
   // Start the interview - called by user action
-  const startInterview = useCallback(() => {
+  const startInterview = useCallback((turnstileToken?: string) => {
     if (hasStarted) return;
     
     setHasStarted(true);
@@ -49,23 +51,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
       onOpen: () => {
         setStatus('connected');
         setError(null);
-        
-        // Timer starts HERE - only after connection is established
-        timerRef.current = window.setInterval(() => {
-          setDuration(prev => {
-            const next = prev + 1;
-            if (next >= MAX_INTERVIEW_DURATION) {
-              setEndReason('timeout');
-              setIsEnding(true);
-            }
-            return next;
-          });
-          
-          if (Date.now() - lastActivityRef.current > INACTIVITY_TIMEOUT_MS) {
-            setEndReason('inactivity');
-            setIsEnding(true);
-          }
-        }, 1000);
+        // Timer does NOT start here anymore (waits for first interaction)
       },
       onClose: () => {
         setStatus('disconnected');
@@ -73,11 +59,32 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
       },
       onError: (err: unknown) => {
         console.error('Session Error:', err);
-        if (err === 'QUOTA_EXCEEDED') {
+        
+        const errorMessage = typeof err === 'string' ? err : '';
+        
+        // Check for quota exceeded (API key limit)
+        if (err === 'QUOTA_EXCEEDED' || errorMessage.includes('quota') || errorMessage.includes('resource exhausted')) {
             setShowQuotaModal(true);
-        } else {
-            setError(typeof err === 'string' ? err : 'Connection failed');
         }
+        // Check for rate limit errors
+        else if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('rate limit') || errorMessage.toLowerCase().includes('too many requests')) {
+            // Determine the type of rate limit
+            if (errorMessage.toLowerCase().includes('per minute') || errorMessage.toLowerCase().includes('rpm')) {
+                setRateLimitType('rpm');
+            } else if (errorMessage.toLowerCase().includes('token') || errorMessage.toLowerCase().includes('tpm')) {
+                setRateLimitType('tpm');
+            } else if (errorMessage.toLowerCase().includes('day') || errorMessage.toLowerCase().includes('daily') || errorMessage.toLowerCase().includes('rpd')) {
+                setRateLimitType('rpd');
+            } else {
+                setRateLimitType('general');
+            }
+            setShowRateLimitModal(true);
+        }
+        // Other errors
+        else {
+            setError(errorMessage || 'Connection failed');
+        }
+        
         setStatus('error');
         if (timerRef.current) clearInterval(timerRef.current);
       },
@@ -90,6 +97,25 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
       },
       onTranscript: (text: string, speaker: 'AI' | 'Candidate', isFinal: boolean, turnId: string) => {
         lastActivityRef.current = Date.now();
+        
+        // Start timer on FIRST transcript if not running
+        if (!timerRef.current) {
+            timerRef.current = window.setInterval(() => {
+              setDuration(prev => {
+                const next = prev + 1;
+                if (next >= MAX_INTERVIEW_DURATION) {
+                  setEndReason('timeout');
+                  setIsEnding(true);
+                }
+                return next;
+              });
+              
+              if (Date.now() - lastActivityRef.current > INACTIVITY_TIMEOUT_MS) {
+                setEndReason('inactivity');
+                setIsEnding(true);
+              }
+            }, 1000);
+        }
         
         setTranscript(prev => {
             const existingIdx = prev.findIndex(item => item.id === turnId);
@@ -110,7 +136,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
       }
     };
 
-    service.connect(config, callbacks).catch(err => {
+    service.connect(config, callbacks, turnstileToken).catch(err => {
         setStatus('error');
         setError(err.message);
     });
@@ -146,6 +172,9 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
     endReason,
     showQuotaModal,
     setShowQuotaModal,
+    showRateLimitModal,
+    setShowRateLimitModal,
+    rateLimitType,
     toggleMute,
     handleEndCall,
     startInterview,

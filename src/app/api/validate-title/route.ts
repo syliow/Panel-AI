@@ -76,33 +76,38 @@ export async function POST(request: NextRequest) {
       - Student/Intern roles (e.g., "Student", "Intern")
       - Creative but recognizable roles (e.g., "Dog Walker", "Content Creator")
 
-      Return a JSON object with:
-      - isValid: boolean
-      - message: string (A very short, polite error message if invalid, e.g., "'Cat' is not a valid job title.")
+      Return a JSON object with this exact structure:
+      {
+        "isValid": boolean,
+        "message": "string (polite error message if invalid)"
+      }
+      Return only the raw JSON. No markdown or explanation.
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-flash-lite-latest',
+      model: 'gemma-3-4b-it',
       contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            isValid: { type: Type.BOOLEAN },
-            message: { type: Type.STRING }
-          },
-          required: ['isValid']
-        }
-      }
     });
 
-    const text = response.text;
+    let text = response.text || '';
+    // Clean and extract braces
+    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const startIdx = text.indexOf('{');
+    const endIdx = text.lastIndexOf('}');
+    if (startIdx !== -1 && endIdx !== -1) {
+      text = text.substring(startIdx, endIdx + 1);
+    }
+
     if (!text) {
       return NextResponse.json({ isValid: true }); // Fallback
     }
 
-    return NextResponse.json(JSON.parse(text));
+    try {
+      return NextResponse.json(JSON.parse(text));
+    } catch (parseError) {
+      console.error('Validation Parse Error:', text);
+      return NextResponse.json({ isValid: true }); // Fail open
+    }
   } catch (error: unknown) {
     console.error('Validation error:', error instanceof Error ? error.message : 'Unknown error');
     
