@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyTurnstileToken } from '@/utils/turnstile';
+
 
 // Rate limiting
 const rateLimit = new Map<string, { count: number; resetTime: number }>();
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemma-3-27b-it',
+      model: 'gemma-3-4b-it',
       contents: prompt,
     });
 

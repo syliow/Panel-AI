@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     const prompt = "Analyze this resume and extract the candidate's key skills, work history summary, and recent projects. Format it as a concise text summary suitable for an interviewer to read before an interview. Do not include any personal information like phone numbers, email addresses, or physical addresses.";
 
     const response = await ai.models.generateContent({
-      model: 'gemma-3-27b-it',
+      model: 'gemma-3-4b-it',
       contents: {
         parts: [
           { inlineData: { mimeType: file.type, data: base64Data } },
