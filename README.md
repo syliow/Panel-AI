@@ -1,129 +1,129 @@
 # Panel AI
 
-A realistic mock interview simulator powered by Google's Gemini AI. Practice your interview skills with an AI interviewer that adapts to your responses in real-time.
-<img width="1639" height="940" alt="panelAiImg" src="https://github.com/user-attachments/assets/180f2b3a-f90d-490b-baaf-eee372a7a9d1" />
+Panel AI is a mock interview app built on Next.js that uses Google Gemini for live audio and text responses. It lets you run realistic interview sessions, get targeted feedback, and practice with role-specific personas.
 
+<img width="1639" height="940" alt="panelAiImg" src="https://github.com/user-attachments/assets/180f2b3a-f90d-490b-baaf-eee372a7a9d1" />
 
 ## Features
 
-- **Live Audio Interaction**: Real-time voice interaction using Gemini's native audio engine
-- **Expert Personas**: AI adapts personality and questions based on role and interview type
-- **Resume Analysis**: Upload your resume for personalized questions
-- **Comprehensive Feedback**: Detailed scoring, speech analysis, and ideal answer templates
+- Live voice interviews via Gemini streaming audio.
+- Role-aware personas tuned to the job title.
+- Behavioral, Technical, and General interview modes.
+- Technical difficulty levels: Easy, Medium, Hard.
+- Job title validation with live suggestions.
+- Resume parsing for personalized questions.
+- Feedback report with scores, strengths, and ideal answers.
+- Speech metrics: pace, filler words, clarity.
+- API rate limiting to curb abuse.
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
-- **AI**: Google Gemini API (Live Audio + Text generation)
-- **Styling**: Tailwind CSS
-- **Language**: TypeScript
-- **Deployment**: Netlify
+- Next.js 15 (App Router)
+- TypeScript
+- Tailwind CSS
+- Google Gemini API
+- Netlify
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
-- A Google Gemini API key
+- Google Gemini API key
 
-### Installation
+### Install
 
-1. Clone the repository:
+```bash
+git clone https://github.com/syliow/Panel-AI.git
+cd Panel-AI
+npm install
+```
 
-   ```bash
-   git clone https://github.com/syliow/Panel-AI.git
-   cd Panel-AI
-   ```
+### Environment
 
-2. Install dependencies:
+Create a `.env.local` file at the project root:
 
-   ```bash
-   npm install
-   ```
+```
+GEMINI_API_KEY=your_gemini_api_key_here
+```
 
-3. Create a `.env.local` file in the root directory:
+### Run locally
 
-   ```
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
+```bash
+npm run dev
+```
 
-4. Run the development server:
+Open http://localhost:3000 in your browser.
 
-   ```bash
-   npm run dev
-   ```
+## Scripts
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+```bash
+npm run dev     # local development server
+npm run build   # production build
+npm run start   # start production server
+npm run lint    # lint
+```
 
 ## Deployment
 
-### Netlify (Recommended)
+### Netlify
 
-1. **Connect Repository**: Link your GitHub repository to Netlify
+1. Connect the GitHub repository in Netlify.
+2. Use the build command `npm run build` and publish directory `.next`.
+3. Add the `GEMINI_API_KEY` environment variable in Site Settings.
 
-2. **Configure Build Settings**:
-   - Build command: `npm run build`
-   - Publish directory: `.next`
+Netlify installs `@netlify/plugin-nextjs` automatically.
 
-3. **Set Environment Variables**:
-   In Netlify dashboard → Site Settings → Environment Variables:
-
-   ```
-   GEMINI_API_KEY = your_gemini_api_key_here
-   ```
-
-4. **Deploy**: Netlify will automatically install `@netlify/plugin-nextjs`
-
-### Manual Build
+### Manual
 
 ```bash
-# Production build
 npm run build
-
-# Start production server
-npm start
+npm run start
 ```
 
 ## Environment Variables
 
 | Variable         | Description                | Required |
 | ---------------- | -------------------------- | -------- |
-| `GEMINI_API_KEY` | Your Google Gemini API key | Yes      |
+| `GEMINI_API_KEY` | Google Gemini API key      | Yes      |
 
 ## Project Structure
 
 ```
-Panel-AI/
-├── src/
-│   ├── app/
-│   │   ├── api/              # Server-side API routes
-│   │   │   ├── feedback/     # Feedback generation
-│   │   │   ├── resume/       # Resume parsing
-│   │   │   ├── suggestions/  # Job title suggestions
-│   │   │   ├── validate-title/ # Job title validation
-│   │   │   └── live-session/ # Live session initialization
-│   │   ├── globals.css
-│   │   ├── layout.tsx
-│   │   └── page.tsx
-│   ├── components/           # React components
-│   ├── hooks/                # Custom React hooks
-│   ├── services/             # Client-side service layer
-│   ├── utils/                # Utility functions
-│   ├── constants.ts
-│   └── types.ts
-├── netlify.toml              # Netlify configuration
-├── next.config.ts
-├── tailwind.config.js
-└── package.json
+src/
+  app/
+    api/
+      feedback/        # Feedback generation
+      resume/          # Resume parsing
+      suggestions/     # Job title suggestions
+      validate-title/  # Job title validation
+      live-session/    # Live session initialization
+    globals.css
+    layout.tsx
+    page.tsx
+  components/          # UI components
+  hooks/               # Custom hooks
+  services/            # Client-side service layer
+  utils/               # Utility functions
+  constants.ts
+  types.ts
 ```
 
-## Security
+## Security Notes
 
-- API keys are stored server-side and never exposed in client bundles
-- All AI API calls (except real-time audio) are routed through Next.js API routes
-- Client-side rate limiting to prevent abuse
-- Security headers configured for production
+- API keys stay server-side and are not bundled into client code.
+- Most AI calls are routed through Next.js API routes (live audio uses Gemini streaming).
+- Basic client-side rate limiting is in place to reduce abuse.
+
+## Product Notes
+
+Panel AI is designed to feel like a real call, not a chat box. The flow focuses on:
+
+- Voice-first interaction: users start the session by speaking, which triggers the interviewer prompt immediately.
+- Realistic structure: question sequencing is tuned to mirror a real interview (intro, core questions, follow-ups, wrap-up).
+- Personalization: resume context and job title shape the interview so it feels specific, not generic.
+- Actionable feedback: the session ends with concrete scoring and examples so users can improve quickly.
 
 ## Author
 
-Developed by [Shanyi Liow](https://liowshanyi.site)
+Developed by [Shanyi Liow](https://liowshanyi.site).
