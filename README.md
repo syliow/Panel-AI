@@ -62,7 +62,6 @@ npm run dev     # local development server
 npm run build   # production build
 npm run start   # start production server
 npm run lint    # lint
-npm test        # placeholder for tests
 ```
 
 ## Deployment
@@ -84,9 +83,9 @@ npm run start
 
 ## Environment Variables
 
-| Variable         | Description           | Required |
-| ---------------- | --------------------- | -------- |
-| `GEMINI_API_KEY` | Google Gemini API key | Yes      |
+| Variable         | Description                | Required |
+| ---------------- | -------------------------- | -------- |
+| `GEMINI_API_KEY` | Google Gemini API key      | Yes      |
 
 ## Project Structure
 
