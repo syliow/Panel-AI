@@ -8,7 +8,9 @@ interface TranscriptMessageProps {
   isSpeaking?: boolean;
 }
 
-export const TranscriptMessage: React.FC<TranscriptMessageProps> = ({ item, isSpeaking }) => {
+// Optimization: Use React.memo to prevent unnecessary re-renders when parent state (like audio volume) updates.
+// This is critical because volume updates happen frequently (e.g. 60fps) and would otherwise re-render the entire transcript list.
+export const TranscriptMessage: React.FC<TranscriptMessageProps> = React.memo(({ item, isSpeaking }) => {
   const isAI = item.speaker === 'AI';
 
   const formatTime = (timestamp: number) => {
@@ -60,4 +62,6 @@ export const TranscriptMessage: React.FC<TranscriptMessageProps> = ({ item, isSp
       </div>
     </div>
   );
-};
+});
+
+TranscriptMessage.displayName = 'TranscriptMessage';
