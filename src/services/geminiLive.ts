@@ -66,16 +66,15 @@ export class GeminiLiveService {
     // Fetch API key from server
     let apiKey: string;
     try {
-      // Use POST with Turnstile token if available, otherwise fall back to GET
-      const fetchOptions: RequestInit = turnstileToken 
-        ? {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ turnstileToken })
-          }
-        : { method: 'GET' };
-      
-      const response = await fetch('/api/live-session', fetchOptions);
+      if (!turnstileToken) {
+        throw new Error("Security verification failed. Please try again.");
+      }
+
+      const response = await fetch('/api/live-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ turnstileToken })
+      });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);

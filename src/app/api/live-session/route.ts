@@ -38,27 +38,6 @@ function checkRateLimit(ip: string): boolean {
 // 2. Cloudflare Turnstile bot protection
 // 3. Origin validation (optional - commented out for development)
 
-// Keep GET for backward compatibility (without Turnstile)
-export async function GET(request: NextRequest) {
-  const clientIP = getClientIP(request);
-  
-  // Rate limiting
-  if (!checkRateLimit(clientIP)) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' }, 
-      { status: 429 }
-    );
-  }
-  
-  const apiKey = process.env.GEMINI_API_KEY;
-  
-  if (!apiKey) {
-    return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
-  }
-
-  return NextResponse.json({ apiKey });
-}
-
 // POST with Turnstile verification (preferred)
 export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request);
