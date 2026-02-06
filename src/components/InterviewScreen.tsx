@@ -128,8 +128,11 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
                       
                       {/* Start Button */}
                       <button
-                         onClick={() => startInterview(turnstileToken || undefined)}
-                         className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-black dark:bg-white text-white dark:text-black text-sm font-bold uppercase tracking-widest hover:scale-105 transition-all shadow-xl hover:shadow-2xl"
+                         disabled={!turnstileToken}
+                         onClick={() => turnstileToken && startInterview(turnstileToken)}
+                         className={`group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-black dark:bg-white text-white dark:text-black text-sm font-bold uppercase tracking-widest transition-all shadow-xl hover:shadow-2xl ${
+                           !turnstileToken ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+                         }`}
                       >
                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
