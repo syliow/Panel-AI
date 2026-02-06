@@ -1,7 +1,7 @@
 import { FunctionDeclaration, GoogleGenAI, LiveServerMessage, Modality, Session, Type } from '@google/genai';
 import { MODEL_NAME, SYSTEM_PROMPT_TEMPLATE } from '@/constants';
 import { InterviewConfig } from '@/types';
-import { createPcmBlob, decodeAudioData, decodeBase64 } from '@/utils/audioUtils';
+import { decodeAudioData, decodeBase64, encodeBase64 } from '@/utils/audioUtils';
 import { isQuotaError } from '@/utils/apiUtils';
 
 const INPUT_SAMPLE_RATE = 16000;
@@ -37,6 +37,7 @@ export class GeminiLiveService {
   private ai: GoogleGenAI | null = null;
   private inputContext: AudioContext | null = null;
   private outputContext: AudioContext | null = null;
+  private workletNode: AudioWorkletNode | null = null;
   private mediaStream: MediaStream | null = null;
   private outputNode: GainNode | null = null;
   private activeSources: Set<AudioBufferSourceNode> = new Set();
@@ -102,7 +103,7 @@ export class GeminiLiveService {
     }
 
     this.ai = new GoogleGenAI({ apiKey });
-    this.initializeAudioContext();
+    await this.initializeAudioContext();
 
     const systemInstruction = this.buildSystemPrompt(config);
 
@@ -145,13 +146,15 @@ export class GeminiLiveService {
     }
   }
 
-  private initializeAudioContext() {
+  private async initializeAudioContext() {
     try {
       this.inputContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)({ sampleRate: INPUT_SAMPLE_RATE });
       this.outputContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)({ sampleRate: OUTPUT_SAMPLE_RATE });
       
       this.outputNode = this.outputContext.createGain();
       this.outputNode.connect(this.outputContext.destination);
+
+      await this.inputContext.audioWorklet.addModule('/worklets/audio-processor.js');
     } catch (e) {
       console.error("AudioContext initialization failed", e);
     }
@@ -247,20 +250,27 @@ export class GeminiLiveService {
     try {
       this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const source = this.inputContext.createMediaStreamSource(this.mediaStream);
-      const processor = this.inputContext.createScriptProcessor(BUFFER_SIZE, 1, 1);
 
-      processor.onaudioprocess = (e) => {
+      this.workletNode = new AudioWorkletNode(this.inputContext, 'audio-recorder-processor');
+
+      this.workletNode.port.onmessage = (event) => {
         if (this.isMuted || !this.session || this.isDisconnecting) return;
-        const inputData = e.inputBuffer.getChannelData(0);
-        const pcmBlob = createPcmBlob(inputData);
+
+        const int16Data = new Int16Array(event.data);
+        const base64 = encodeBase64(new Uint8Array(int16Data.buffer));
         
         if (this.session && !this.isDisconnecting) {
-          this.session.sendRealtimeInput({ media: pcmBlob });
+          this.session.sendRealtimeInput({
+            media: {
+              data: base64,
+              mimeType: 'audio/pcm;rate=16000',
+            }
+          });
         }
       };
 
-      source.connect(processor);
-      processor.connect(this.inputContext.destination);
+      source.connect(this.workletNode);
+      this.workletNode.connect(this.inputContext.destination);
     } catch (err) {
       console.error("Microphone access failed", err);
       callbacks.onError("Microphone access denied.");
@@ -383,6 +393,16 @@ export class GeminiLiveService {
         console.warn('Error disconnecting output node:', e);
       }
       this.outputNode = null;
+    }
+
+    if (this.workletNode) {
+      try {
+        this.workletNode.disconnect();
+        this.workletNode.port.close();
+      } catch (e) {
+        console.warn('Error disconnecting worklet node:', e);
+      }
+      this.workletNode = null;
     }
 
     // Stop microphone stream
