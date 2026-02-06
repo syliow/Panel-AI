@@ -196,7 +196,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
                           Ready to Start
                         </h3>
                         <p className="text-sm text-slate-600 dark:text-slate-400">
-                          Say <span className="font-bold text-emerald-600 dark:text-emerald-400">"Hello"</span>, <span className="font-bold text-emerald-600 dark:text-emerald-400">"Start"</span>, or <span className="font-bold text-emerald-600 dark:text-emerald-400">"Hi"</span> to begin the interview
+                          Say <span className="font-bold text-emerald-600 dark:text-emerald-400">&quot;Hello&quot;</span>, <span className="font-bold text-emerald-600 dark:text-emerald-400">&quot;Start&quot;</span>, or <span className="font-bold text-emerald-600 dark:text-emerald-400">&quot;Hi&quot;</span> to begin the interview
                         </p>
                         
                         {/* Permission Hint */}
