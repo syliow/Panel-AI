@@ -1,5 +1,12 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { NextRequest, NextResponse } from 'next/server';
+import { LRUCache } from 'lru-cache';
+
+// Cache configuration
+const cache = new LRUCache<string, any>({
+  max: 500,
+  ttl: 1000 * 60 * 60 * 24, // 24 hours
+});
 
 // Rate limiting
 const rateLimit = new Map<string, { count: number; resetTime: number }>();
@@ -58,6 +65,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ isValid: false, message: 'Job title is too short.' });
     }
 
+    // Check cache
+    const cacheKey = sanitizedTitle.toLowerCase();
+    const cachedResult = cache.get(cacheKey);
+    if (cachedResult) {
+      return NextResponse.json(cachedResult);
+    }
+
     const ai = new GoogleGenAI({ apiKey });
 
     const prompt = `
@@ -103,7 +117,9 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      return NextResponse.json(JSON.parse(text));
+      const parsedResult = JSON.parse(text);
+      cache.set(cacheKey, parsedResult);
+      return NextResponse.json(parsedResult);
     } catch (parseError) {
       console.error('Validation Parse Error:', text);
       return NextResponse.json({ isValid: true }); // Fail open
