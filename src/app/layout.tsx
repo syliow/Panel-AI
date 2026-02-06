@@ -3,11 +3,9 @@ import { Analytics } from "@vercel/analytics/next"
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Panel AI',
-  description: 'Realistic Mock Interview powered by AI',
-  icons: {
-    icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' fill='none'%3E%3Cstyle%3E@media (prefers-color-scheme: dark) { rect { fill: %23ffffff !important; } }%3C/style%3E%3Crect x='8' y='8' width='8' height='24' fill='%230f172a' /%3E%3Crect x='20' y='8' width='4' height='24' fill='%230f172a' opacity='0.6' /%3E%3Crect x='28' y='8' width='4' height='24' fill='%230f172a' opacity='0.3' /%3E%3C/svg%3E",
-  },
+  title: 'Panel AI - Realistic Mock Interview',
+  description: 'Practice your interview skills with Google Gemini powered AI Adaptable Interviewer.',
+  metadataBase: new URL('https://www.panelai.site'),
 }
 
 export default function RootLayout({
