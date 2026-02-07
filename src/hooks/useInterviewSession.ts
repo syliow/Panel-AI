@@ -24,6 +24,8 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
   const serviceRef = useRef<GeminiLiveService | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
   const timerRef = useRef<number | null>(null);
+  const volumeRef = useRef<number>(0);
+  const volumeRafRef = useRef<number | null>(null);
 
   const disconnect = useCallback(async () => {
     if (serviceRef.current) {
@@ -37,7 +39,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
   }, [disconnect, onSessionEnd, transcript]);
 
   // Start the interview - called by user action
-  const startInterview = useCallback((turnstileToken?: string) => {
+  const startInterview = useCallback((turnstileToken: string) => {
     if (hasStarted) return;
     
     setHasStarted(true);
@@ -89,7 +91,15 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
         if (timerRef.current) clearInterval(timerRef.current);
       },
       onAudioData: (vol: number) => {
-          setVolume(Math.min(1, vol / 50));
+          const nextVolume = Math.min(1, vol / 50);
+          volumeRef.current = nextVolume;
+
+          if (!volumeRafRef.current) {
+              volumeRafRef.current = requestAnimationFrame(() => {
+                  setVolume(volumeRef.current);
+                  volumeRafRef.current = null;
+              });
+          }
       },
       onAiSpeaking: (speaking: boolean) => {
         setIsAiSpeaking(speaking);
@@ -147,6 +157,10 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
     return () => {
       disconnect();
       if (timerRef.current) clearInterval(timerRef.current);
+      if (volumeRafRef.current) {
+          cancelAnimationFrame(volumeRafRef.current);
+          volumeRafRef.current = null;
+      }
     };
   }, [disconnect]);
 

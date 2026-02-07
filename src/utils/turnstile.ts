@@ -55,7 +55,10 @@ export async function verifyTurnstileToken(
     }
   } catch (error) {
     console.error('Turnstile verification error:', error);
-    // Fail open on network errors to not block legitimate users
-    return { success: true };
+    // Fail closed on network errors to ensure security
+    return {
+      success: false,
+      error: 'Security verification failed. Please refresh and try again.'
+    };
   }
 }
