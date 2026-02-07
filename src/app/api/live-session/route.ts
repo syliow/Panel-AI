@@ -6,6 +6,24 @@ import { verifyTurnstileToken } from '@/utils/turnstile';
 const rateLimit = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 10; // 10 requests per minute per IP
+const MAX_MAP_SIZE = 10000; // Prevent unbounded memory growth
+
+// Cleanup expired entries every minute to prevent memory leaks
+if (typeof setInterval !== 'undefined') {
+  const cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [ip, record] of rateLimit.entries()) {
+      if (now > record.resetTime) {
+        rateLimit.delete(ip);
+      }
+    }
+  }, RATE_LIMIT_WINDOW_MS);
+
+  // Prevent interval from blocking process exit in Node.js
+  if (cleanupInterval && typeof cleanupInterval === 'object' && 'unref' in cleanupInterval) {
+    (cleanupInterval as any).unref();
+  }
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +35,15 @@ function getClientIP(request: NextRequest): string {
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
+
+  // Cleanup if too large (prevent DoS)
+  if (rateLimit.size >= MAX_MAP_SIZE) {
+    const oldestIp = rateLimit.keys().next().value;
+    if (oldestIp) {
+      rateLimit.delete(oldestIp);
+    }
+  }
+
   const record = rateLimit.get(ip);
   
   if (!record || now > record.resetTime) {
@@ -38,28 +65,7 @@ function checkRateLimit(ip: string): boolean {
 // 2. Cloudflare Turnstile bot protection
 // 3. Origin validation (optional - commented out for development)
 
-// Keep GET for backward compatibility (without Turnstile)
-export async function GET(request: NextRequest) {
-  const clientIP = getClientIP(request);
-  
-  // Rate limiting
-  if (!checkRateLimit(clientIP)) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' }, 
-      { status: 429 }
-    );
-  }
-  
-  const apiKey = process.env.GEMINI_API_KEY;
-  
-  if (!apiKey) {
-    return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
-  }
-
-  return NextResponse.json({ apiKey });
-}
-
-// POST with Turnstile verification (preferred)
+// POST with Turnstile verification (required)
 export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request);
   
