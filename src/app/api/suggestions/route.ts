@@ -30,6 +30,29 @@ function checkRateLimit(ip: string): boolean {
 
 const MAX_INPUT_LENGTH = 50;
 
+// Simple LRU Cache
+const suggestionCache = new Map<string, string[]>();
+const CACHE_SIZE_LIMIT = 100;
+
+function getFromCache(key: string): string[] | null {
+  if (suggestionCache.has(key)) {
+    // LRU refresh: move to end
+    const value = suggestionCache.get(key)!;
+    suggestionCache.delete(key);
+    suggestionCache.set(key, value);
+    return value;
+  }
+  return null;
+}
+
+function addToCache(key: string, value: string[]) {
+  if (suggestionCache.size >= CACHE_SIZE_LIMIT) {
+    const firstKey = suggestionCache.keys().next().value;
+    if (firstKey) suggestionCache.delete(firstKey);
+  }
+  suggestionCache.set(key, value);
+}
+
 export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request);
   
@@ -61,6 +84,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ suggestions: [] });
     }
 
+    // Check cache
+    const cached = getFromCache(sanitizedInput);
+    if (cached) {
+      return NextResponse.json({ suggestions: cached });
+    }
+
     const ai = new GoogleGenAI({ apiKey });
 
     const response = await ai.models.generateContent({
@@ -89,6 +118,9 @@ export async function POST(request: NextRequest) {
       .filter((s: string) => s.toLowerCase() !== sanitizedInput.toLowerCase())
       .slice(0, 5);
     
+    // Update cache
+    addToCache(sanitizedInput, filtered);
+
     return NextResponse.json({ suggestions: filtered });
   } catch (error: unknown) {
     console.error('Suggestions error:', error instanceof Error ? error.message : 'Unknown error');
