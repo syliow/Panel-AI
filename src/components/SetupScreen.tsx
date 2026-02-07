@@ -43,7 +43,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleHover = (e: React.MouseEvent, text: string) => {
+  const handleHover = (e: React.MouseEvent | React.FocusEvent, text: string) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setTooltip({
       text,
@@ -195,8 +195,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
                         key={type} 
                         type="button" 
                         onClick={() => setInterviewType(type)}
+                        aria-pressed={interviewType === type}
                         onMouseEnter={(e) => handleHover(e, INTERVIEW_TYPE_DESCRIPTIONS[type])}
                         onMouseLeave={() => setTooltip(null)}
+                        onFocus={(e) => handleHover(e, INTERVIEW_TYPE_DESCRIPTIONS[type])}
+                        onBlur={() => setTooltip(null)}
                         className={`px-3 py-2 text-[10px] font-bold uppercase tracking-widest border transition-all ${
                           interviewType === type ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-800'
                       }`}>
@@ -216,8 +219,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
                         key={level} 
                         type="button" 
                         onClick={() => setDifficulty(level)}
+                        aria-pressed={difficulty === level}
                         onMouseEnter={(e) => handleHover(e, DIFFICULTY_DESCRIPTIONS[level])}
                         onMouseLeave={() => setTooltip(null)}
+                        onFocus={(e) => handleHover(e, DIFFICULTY_DESCRIPTIONS[level])}
+                        onBlur={() => setTooltip(null)}
                         className={`px-3 py-2 text-[10px] font-bold uppercase tracking-widest border transition-all ${
                           difficulty === level ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-800'
                       }`}>
