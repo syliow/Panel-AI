@@ -30,6 +30,7 @@ export const InfoModal: React.FC<InfoModalProps> = ({ isOpen, onClose, title, co
           <button 
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-black dark:hover:text-white transition-colors"
+            aria-label="Close modal"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
