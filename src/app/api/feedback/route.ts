@@ -6,7 +6,7 @@ import { verifyTurnstileToken } from '@/utils/turnstile';
 // Rate limiting
 const rateLimit = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 5; // 5 feedback requests per minute
+const MAX_REQUESTS_PER_WINDOW = 10; // 10 feedback requests per minute
 
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');

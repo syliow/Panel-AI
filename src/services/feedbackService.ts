@@ -19,9 +19,17 @@ export async function generateInterviewFeedback(
 
   if (!response.ok) {
     const data = await response.json();
-    if (data.error === 'QUOTA_EXCEEDED' || response.status === 429) {
+    
+    // Check if it's a rate limit error from the server
+    if (response.status === 429 && data.error?.includes('Too many requests')) {
+      throw new RateLimitError('You\'re making requests too quickly. Please wait a minute and try again.');
+    }
+    
+    // Check if it's an API quota error
+    if (data.error === 'QUOTA_EXCEEDED') {
       throw new Error('QUOTA_EXCEEDED');
     }
+    
     throw new Error(data.error || 'Failed to generate feedback');
   }
 
