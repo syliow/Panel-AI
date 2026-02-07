@@ -6,7 +6,6 @@ import { ControlBar } from './ControlBar';
 import { TranscriptList } from './TranscriptList';
 import { QuotaModal } from './QuotaModal';
 import { RateLimitModal } from './RateLimitModal';
-import { useTurnstile } from './Turnstile';
 import { MAX_INTERVIEW_DURATION } from '@/constants';
 import { useInterviewSession } from '@/hooks/useInterviewSession';
 
@@ -19,8 +18,6 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
   const scrollRef = useRef<HTMLDivElement>(null);
   const [countdown, setCountdown] = useState(5);
   
-  // Turnstile bot protection
-  const { token: turnstileToken, isVerified, handleVerify, TurnstileWidget } = useTurnstile();
 
   const {
     status,
@@ -122,17 +119,11 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
                             {config.interviewType} Interview {config.difficulty && `• ${config.difficulty}`}
                          </p>
                       </div>
+
                       
-                      {/* Invisible Turnstile Widget - verifies in background */}
-                      <TurnstileWidget size="invisible" />
-                      
-                      {/* Start Button */}
                       <button
-                         disabled={!turnstileToken}
-                         onClick={() => turnstileToken && startInterview(turnstileToken)}
-                         className={`group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-black dark:bg-white text-white dark:text-black text-sm font-bold uppercase tracking-widest transition-all shadow-xl hover:shadow-2xl ${
-                           !turnstileToken ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
-                         }`}
+                         onClick={() => startInterview()}
+                         className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-black dark:bg-white text-white dark:text-black text-sm font-bold uppercase tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-105"
                       >
                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
