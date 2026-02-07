@@ -1,0 +1,3 @@
+## 2024-05-22 - [High Frequency State Updates in Parent Components]
+**Learning:** `useInterviewSession` updates `volume` state via `requestAnimationFrame` (60fps) to drive audio visualization. This triggers re-renders of the parent `InterviewScreen` component. Expensive child components (like `transcript.map`) inside `InterviewScreen` were re-evaluating on every frame, causing performance issues as the transcript grew.
+**Action:** Extract expensive lists or sub-trees into `React.memo` components when the parent has high-frequency state updates. Ensure props passed to these memoized components are stable (e.g., state from `useState` or memoized callbacks).
