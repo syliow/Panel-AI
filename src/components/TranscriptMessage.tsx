@@ -48,7 +48,7 @@ export const TranscriptMessage = React.memo<TranscriptMessageProps>(({ item, isS
 
         {/* Text Content */}
         <div className={`text-sm md:text-base leading-relaxed ${isAI ? 'font-normal' : 'font-medium'}`}>
-          {item.text}
+          {item.text.replace(/<noise>/g, '').trim()}
           
           {/* Typing Indicator */}
           {item.isPartial && (
