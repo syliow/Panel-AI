@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyTurnstileToken } from '@/utils/turnstile';
 
 
 // Rate limiting
@@ -49,7 +50,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { transcript, config } = body;
+    const { transcript, config, turnstileToken } = body;
+
+    // Verify Turnstile
+    const turnstileResult = await verifyTurnstileToken(turnstileToken, clientIP);
+    if (!turnstileResult.success) {
+      return NextResponse.json({ error: turnstileResult.error || 'Security verification failed' }, { status: 403 });
+    }
 
     // Input validation
     if (!transcript || !Array.isArray(transcript)) {

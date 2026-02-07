@@ -43,7 +43,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleHover = (e: React.MouseEvent, text: string) => {
+  const handleHover = (e: React.MouseEvent | React.FocusEvent, text: string) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setTooltip({
       text,
@@ -157,8 +157,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
             <div className="space-y-8 md:space-y-10">
               {/* Job Title */}
               <div className="flex flex-col space-y-2 relative" ref={dropdownRef}>
-                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-600">Target Role</label>
+                  <label htmlFor="target-role" className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-600">Target Role</label>
                   <input
+                      id="target-role"
                       type="text"
                       required
                       autoComplete="off"
@@ -194,8 +195,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
                         key={type} 
                         type="button" 
                         onClick={() => setInterviewType(type)}
+                        aria-pressed={interviewType === type}
                         onMouseEnter={(e) => handleHover(e, INTERVIEW_TYPE_DESCRIPTIONS[type])}
                         onMouseLeave={() => setTooltip(null)}
+                        onFocus={(e) => handleHover(e, INTERVIEW_TYPE_DESCRIPTIONS[type])}
+                        onBlur={() => setTooltip(null)}
                         className={`px-3 py-2 text-[10px] font-bold uppercase tracking-widest border transition-all ${
                           interviewType === type ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-800'
                       }`}>
@@ -215,8 +219,11 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
                         key={level} 
                         type="button" 
                         onClick={() => setDifficulty(level)}
+                        aria-pressed={difficulty === level}
                         onMouseEnter={(e) => handleHover(e, DIFFICULTY_DESCRIPTIONS[level])}
                         onMouseLeave={() => setTooltip(null)}
+                        onFocus={(e) => handleHover(e, DIFFICULTY_DESCRIPTIONS[level])}
+                        onBlur={() => setTooltip(null)}
                         className={`px-3 py-2 text-[10px] font-bold uppercase tracking-widest border transition-all ${
                           difficulty === level ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-800'
                       }`}>
@@ -230,14 +237,25 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
               {/* Resume */}
               <div className="flex flex-col space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-600">Resume (Optional)</label>
-                    <button type="button" onClick={() => setShowResumeInfo(true)} className="text-slate-300 hover:text-black dark:hover:text-white transition-colors">
+                    <label htmlFor="resume-upload" className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-600">Resume (Optional)</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowResumeInfo(true)}
+                      className="text-slate-300 hover:text-black dark:hover:text-white transition-colors"
+                      aria-label="Learn more about resume personalization"
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </button>
                   </div>
-                  <input type="file" accept=".pdf,.txt" onChange={(e) => setResumeFile(e.target.files?.[0] || null)} className="block w-full text-[10px] text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-[9px] file:font-black file:uppercase file:bg-slate-900 dark:file:bg-white file:text-white dark:file:text-black border-2 border-dashed border-slate-200 dark:border-slate-800 p-3 bg-white/30 dark:bg-black/30" />
+                  <input
+                    id="resume-upload"
+                    type="file"
+                    accept=".pdf,.txt"
+                    onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
+                    className="block w-full text-[10px] text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-[9px] file:font-black file:uppercase file:bg-slate-900 dark:file:bg-white file:text-white dark:file:text-black border-2 border-dashed border-slate-200 dark:border-slate-800 p-3 bg-white/30 dark:bg-black/30"
+                  />
               </div>
               
               {error && <p className="text-[10px] text-red-600 dark:text-red-400 font-bold text-center italic">{error}</p>}

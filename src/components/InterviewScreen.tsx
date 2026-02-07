@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { InterviewConfig, TranscriptItem } from '@/types';
 import { ControlBar } from './ControlBar';
-import { TranscriptMessage } from './TranscriptMessage';
+import { TranscriptList } from './TranscriptList';
 import { QuotaModal } from './QuotaModal';
 import { RateLimitModal } from './RateLimitModal';
 import { useTurnstile } from './Turnstile';
@@ -213,13 +213,10 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
             
             {/* Transcript messages */}
             {transcript.length > 0 && (
-                transcript.map((item, index) => (
-                    <TranscriptMessage 
-                        key={item.id} 
-                        item={item} 
-                        isSpeaking={isAiSpeaking && item.speaker === 'AI' && index === transcript.length - 1} 
-                    />
-                ))
+                <TranscriptList
+                    transcript={transcript}
+                    isAiSpeaking={isAiSpeaking}
+                />
             )}
 
             {error && (
