@@ -65,7 +65,7 @@ function checkRateLimit(ip: string): boolean {
 // 2. Cloudflare Turnstile bot protection
 // 3. Origin validation (optional - commented out for development)
 
-// POST with Turnstile verification (preferred)
+// POST with Turnstile verification (required)
 export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request);
   
