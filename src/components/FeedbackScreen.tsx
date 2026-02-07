@@ -22,6 +22,13 @@ export const FeedbackScreen: React.FC<FeedbackScreenProps> = ({ transcript, conf
   
   const handleGenerateFeedback = async () => {
     if (transcript.length === 0) return;
+    
+    // Check if Turnstile token is available
+    if (!token) {
+      setErrorMsg("Security verification not ready. Please wait a moment and try again.");
+      return;
+    }
+    
     setLoading(true);
     setErrorMsg(null);
     try {
@@ -29,10 +36,12 @@ export const FeedbackScreen: React.FC<FeedbackScreenProps> = ({ transcript, conf
         setFeedback(data);
         setShowAnalysis(true);
     } catch (e: unknown) {
+        console.error('Feedback generation error:', e);
         if (e instanceof Error && e.message === 'QUOTA_EXCEEDED') {
             setShowQuotaModal(true);
         } else {
-            setErrorMsg(e instanceof Error && e.name === 'RateLimitError' ? e.message : "Failed to generate report.");
+            const errorMessage = e instanceof Error ? e.message : "Failed to generate report.";
+            setErrorMsg(e instanceof Error && e.name === 'RateLimitError' ? e.message : errorMessage);
         }
     } finally {
         setLoading(false);
