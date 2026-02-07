@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { generateInterviewFeedback } from '@/services/feedbackService';
 import { FeedbackData, InterviewConfig, TranscriptItem } from '@/types';
 import { QuotaModal } from './QuotaModal';
+import { useTurnstile } from './Turnstile';
 
 interface FeedbackScreenProps {
   transcript: TranscriptItem[];
@@ -17,13 +18,14 @@ export const FeedbackScreen: React.FC<FeedbackScreenProps> = ({ transcript, conf
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showQuotaModal, setShowQuotaModal] = useState(false);
+  const { token, TurnstileWidget } = useTurnstile();
   
   const handleGenerateFeedback = async () => {
     if (transcript.length === 0) return;
     setLoading(true);
     setErrorMsg(null);
     try {
-        const data = await generateInterviewFeedback(transcript, config);
+        const data = await generateInterviewFeedback(transcript, config, token);
         setFeedback(data);
         setShowAnalysis(true);
     } catch (e: unknown) {
@@ -150,6 +152,7 @@ export const FeedbackScreen: React.FC<FeedbackScreenProps> = ({ transcript, conf
         )}
         </div>
       </div>
+      <TurnstileWidget size="invisible" />
     </div>
   );
 };
