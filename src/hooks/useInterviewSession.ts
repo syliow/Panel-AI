@@ -39,7 +39,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
   }, [disconnect, onSessionEnd, transcript]);
 
   // Start the interview - called by user action
-  const startInterview = useCallback((turnstileToken?: string) => {
+  const startInterview = useCallback((turnstileToken: string) => {
     if (hasStarted) return;
     
     setHasStarted(true);
