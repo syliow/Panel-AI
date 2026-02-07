@@ -4,7 +4,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Panel AI - Realistic Mock Interview',
+  title: 'Panel AI',
   description: 'Practice your interview skills with Google Gemini powered AI Adaptable Interviewer.',
   metadataBase: new URL('https://www.panelai.site'),
 }
