@@ -8,7 +8,7 @@ interface TranscriptMessageProps {
   isSpeaking?: boolean;
 }
 
-export const TranscriptMessage: React.FC<TranscriptMessageProps> = ({ item, isSpeaking }) => {
+const TranscriptMessageBase: React.FC<TranscriptMessageProps> = ({ item, isSpeaking }) => {
   const isAI = item.speaker === 'AI';
 
   const formatTime = (timestamp: number) => {
@@ -61,3 +61,5 @@ export const TranscriptMessage: React.FC<TranscriptMessageProps> = ({ item, isSp
     </div>
   );
 };
+
+export const TranscriptMessage = React.memo(TranscriptMessageBase);
