@@ -35,12 +35,12 @@ export const ControlBar: React.FC<ControlBarProps> = ({
         </div>
 
         {/* Main Controls */}
-        <div className="flex-grow md:w-1/3 flex items-center justify-center gap-8 md:gap-12">
+        <div className="flex-grow md:w-1/3 flex items-center justify-center gap-4 md:gap-12">
           
           {/* Mute Button */}
           <button
             onClick={onToggleMute}
-            className={`group relative flex items-center justify-center h-14 w-14 md:h-16 md:w-16 rounded-full border transition-all duration-300 flex-shrink-0 ${
+            className={`group relative flex items-center justify-center h-14 w-14 md:h-16 md:w-16 min-w-[56px] min-h-[56px] rounded-full border transition-all duration-300 flex-shrink-0 ${
               isMuted 
                 ? 'border-red-500 text-red-500 bg-red-50 dark:bg-red-900/10 shadow-lg' 
                 : 'border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white hover:border-black dark:hover:border-white shadow-lg'
@@ -69,7 +69,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({
           {/* End Call Button */}
           <button
             onClick={onEndCall}
-            className="flex items-center justify-center h-12 w-12 md:h-14 md:w-14 rounded-full bg-red-600 hover:bg-red-700 text-white transition-all shadow-lg flex-shrink-0"
+            className="flex items-center justify-center h-12 w-12 md:h-14 md:w-14 min-w-[48px] min-h-[48px] rounded-full bg-red-600 hover:bg-red-700 text-white transition-all shadow-lg flex-shrink-0"
             title="End Interview"
             aria-label="End Interview"
           >

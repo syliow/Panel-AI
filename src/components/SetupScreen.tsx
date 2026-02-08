@@ -139,10 +139,10 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
       />
 
       <div className="flex-1 w-full overflow-y-auto scrollbar-hide flex flex-col items-center justify-center p-4 md:p-6">
-        <div className="w-full max-w-lg bg-slate-50/95 dark:bg-slate-950/95 border border-slate-200 dark:border-slate-800 p-6 md:p-12 animate-fade-in shadow-2xl relative transition-all duration-300 z-10 backdrop-blur-sm my-auto">
+        <div className="w-full max-w-lg bg-slate-50/95 dark:bg-slate-950/95 border border-slate-200 dark:border-slate-800 p-4 md:p-12 animate-fade-in shadow-2xl relative transition-all duration-300 z-10 backdrop-blur-sm my-auto">
           
           <div className="mb-8 md:mb-12">
-              <h1 className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85] select-none">
+              <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85] select-none">
                 Panel <span className="text-transparent bg-clip-text bg-gradient-to-br from-slate-400 to-slate-900 dark:from-slate-600 dark:to-white">AI</span>
               </h1>
               <div className="flex items-center gap-3 mt-4 md:mt-6">
@@ -261,7 +261,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
               {error && <p className="text-[10px] text-red-600 dark:text-red-400 font-bold text-center italic">{error}</p>}
             </div>
 
-            <button type="submit" disabled={!jobTitle.trim() || isSubmitting} className={`w-full py-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all shadow-xl flex items-center justify-center gap-3 ${
+            <button type="submit" disabled={!jobTitle.trim() || isSubmitting} className={`w-full py-4 min-h-[48px] text-[10px] font-black uppercase tracking-[0.3em] transition-all shadow-xl flex items-center justify-center gap-3 ${
                   !jobTitle.trim() || isSubmitting ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed shadow-none' : 'bg-black text-white dark:bg-white dark:text-black hover:translate-y-[-2px]'
               }`}>
                 {isParsingResume ? 'Parsing...' : isSubmitting ? 'Starting...' : 'Begin Interview'}

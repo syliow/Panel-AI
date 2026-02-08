@@ -69,7 +69,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
       {/* Global Footer - Ultra Thin Layout */}
       <footer className="flex-none py-2 border-t border-slate-100 dark:border-slate-900 bg-white/80 dark:bg-black/80 backdrop-blur-md z-50 transition-colors duration-300">
-        <div className="px-4 md:px-6 flex flex-row items-center justify-between">
+        <div className="px-4 md:px-6 flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0">
           
           {/* Left: Brand & Mic Status */}
           <div className="flex items-center gap-3 md:gap-4">
