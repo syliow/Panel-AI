@@ -83,12 +83,16 @@ export const FeedbackScreen: React.FC<FeedbackScreenProps> = ({ transcript, conf
                  <div>
                     <h3 className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-3">Transcript Preview</h3>
                     <div className="bg-slate-50 dark:bg-slate-900 p-4 border border-slate-200 dark:border-slate-800 h-64 overflow-y-auto text-[11px] md:text-sm font-mono leading-relaxed text-slate-700 dark:text-slate-300 scrollbar-hide">
-                        {transcript.length > 0 ? transcript.map((t) => (
-                            <div key={t.id} className="mb-4">
-                                <span className={`text-[9px] font-bold uppercase mr-2 tracking-wider ${t.speaker === 'AI' ? 'text-slate-400' : 'text-black dark:text-white'}`}>{t.speaker === 'AI' ? 'AI' : 'YOU'}</span>
-                                <span className="opacity-80 break-words">{t.text}</span>
-                            </div>
-                        )) : <p className="italic text-center mt-20 opacity-50 text-[10px]">No dialogue recorded.</p>}
+                        {transcript.length > 0 ? (
+                            <ul className="list-none space-y-4 m-0 p-0">
+                                {transcript.map((t) => (
+                                    <li key={t.id} className="mb-0">
+                                        <span className={`text-[9px] font-bold uppercase mr-2 tracking-wider ${t.speaker === 'AI' ? 'text-slate-400' : 'text-black dark:text-white'}`}>{t.speaker === 'AI' ? 'AI' : 'YOU'}</span>
+                                        <span className="opacity-80 break-words">{t.text}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : <p className="italic text-center mt-20 opacity-50 text-[10px]">No dialogue recorded.</p>}
                     </div>
                  </div>
                  {errorMsg && <p className="text-[10px] text-red-600 dark:text-red-400 font-bold text-center italic">{errorMsg}</p>}
@@ -117,16 +121,25 @@ export const FeedbackScreen: React.FC<FeedbackScreenProps> = ({ transcript, conf
                                     <h3 className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Clarity</h3>
                                     <span className="text-lg font-bold text-black dark:text-white">{feedback.speechAnalysis.clarityScore}/10</span>
                                 </div>
-                                <div className="h-1 w-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div className="h-full bg-black dark:bg-white" style={{ width: `${feedback.speechAnalysis.clarityScore * 10}%` }} /></div>
+                                <div
+                                    className="h-1 w-full bg-slate-100 dark:bg-slate-800 overflow-hidden"
+                                    role="progressbar"
+                                    aria-label="Clarity Score"
+                                    aria-valuenow={feedback.speechAnalysis.clarityScore * 10}
+                                    aria-valuemin={0}
+                                    aria-valuemax={100}
+                                >
+                                    <div className="h-full bg-black dark:bg-white" style={{ width: `${feedback.speechAnalysis.clarityScore * 10}%` }} />
+                                </div>
                                 <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">&quot;{feedback.speechAnalysis.feedback}&quot;</p>
                             </div>
                         </div>
 
                         <div className="space-y-6">
                             <h3 className="text-[10px] font-bold uppercase tracking-widest text-black dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2">Questions Review</h3>
-                            <div className="space-y-10">
+                            <ol className="space-y-10 list-none m-0 p-0">
                                 {feedback.questionAnalysis.map((qa, i) => (
-                                    <div key={i} className="group">
+                                    <li key={i} className="group">
                                         <div className="text-[10px] font-bold text-slate-400 mb-2">Q{i + 1}: {qa.question}</div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 pl-4 border-l-2 border-slate-200 dark:border-slate-800 group-hover:border-black transition-colors">
                                             <div className="space-y-1">
@@ -138,9 +151,9 @@ export const FeedbackScreen: React.FC<FeedbackScreenProps> = ({ transcript, conf
                                                 <p className="text-[11px] text-slate-800 dark:text-slate-200">{qa.idealAnswer}</p>
                                             </div>
                                         </div>
-                                    </div>
+                                    </li>
                                 ))}
-                            </div>
+                            </ol>
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-slate-100 dark:border-slate-900">
