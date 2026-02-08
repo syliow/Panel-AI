@@ -62,12 +62,18 @@ export class GeminiLiveService {
     this.currentOutputTurnId = 'ai-' + Math.random().toString(36).substring(7);
   }
 
-  public async connect(config: InterviewConfig, callbacks: GeminiLiveCallbacks) {
+  public async connect(config: InterviewConfig, callbacks: GeminiLiveCallbacks, turnstileToken?: string) {
     // Fetch API key from server
     let apiKey: string;
     try {
-      // Use GET to fetch API key (no Turnstile needed)
-      const response = await fetch('/api/live-session');
+      // Use POST to fetch API key with Turnstile token
+      const response = await fetch('/api/live-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ turnstileToken }),
+      });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

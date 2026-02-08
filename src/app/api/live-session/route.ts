@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyTurnstileToken } from '@/utils/turnstile';
 
 // Simple in-memory rate limiter (resets on server restart)
 // For production, use Redis or a proper rate limiting service
@@ -61,9 +62,10 @@ function checkRateLimit(ip: string): boolean {
 // This endpoint provides the API key for the Gemini Live connection
 // Security measures implemented:
 // 1. Rate limiting per IP
+// 2. Turnstile Verification
 
-// GET method (no Turnstile needed)
-export async function GET(request: NextRequest) {
+// POST method (Requires Turnstile)
+export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request);
   
   // Rate limiting
@@ -71,6 +73,27 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' }, 
       { status: 429 }
+    );
+  }
+
+  // Turnstile Verification
+  try {
+    const body = await request.json();
+    const { turnstileToken } = body;
+
+    // Verify token
+    const verification = await verifyTurnstileToken(turnstileToken, clientIP);
+
+    if (!verification.success) {
+      return NextResponse.json(
+        { error: verification.error || 'Security verification failed' },
+        { status: 401 }
+      );
+    }
+  } catch (e) {
+    return NextResponse.json(
+      { error: 'Invalid request format' },
+      { status: 400 }
     );
   }
 
