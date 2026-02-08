@@ -69,7 +69,7 @@ export const FeedbackScreen: React.FC<FeedbackScreenProps> = ({ transcript, conf
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
 
-        <div className="px-6 py-8 md:px-10 md:py-12 border-b border-slate-100 dark:border-slate-900 pr-12">
+        <div className="px-4 py-6 md:px-10 md:py-12 border-b border-slate-100 dark:border-slate-900 pr-12">
             <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tighter mb-2 break-words">{config.jobTitle}</h1>
             <div className="flex flex-wrap items-center gap-2">
                 <span className="px-2 py-1 bg-slate-100 dark:bg-slate-900 text-[9px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">{config.interviewType}</span>
@@ -77,7 +77,7 @@ export const FeedbackScreen: React.FC<FeedbackScreenProps> = ({ transcript, conf
             </div>
         </div>
 
-        <div className="p-6 md:p-10">
+        <div className="p-4 md:p-10">
         {!showAnalysis ? (
              <div className="space-y-8">
                  <div>
@@ -113,7 +113,7 @@ export const FeedbackScreen: React.FC<FeedbackScreenProps> = ({ transcript, conf
                                 <div className="text-6xl font-black text-black dark:text-white">{feedback.overallScore}</div>
                             </div>
                             <div className="p-6 border border-slate-200 dark:border-slate-800 lg:col-span-2 flex flex-col justify-center space-y-4">
-                                <div className="flex justify-between items-center">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
                                     <h3 className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Clarity</h3>
                                     <span className="text-lg font-bold text-black dark:text-white">{feedback.speechAnalysis.clarityScore}/10</span>
                                 </div>
