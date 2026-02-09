@@ -47,6 +47,11 @@ export class GeminiLiveService {
   private isDisconnecting: boolean = false;
   private pendingEndSession: boolean = false;
 
+  // Audio Nodes for cleanup
+  private processingNode: ScriptProcessorNode | null = null;
+  private inputStreamSource: MediaStreamAudioSourceNode | null = null;
+  private muteNode: GainNode | null = null;
+
   // Transcript tracking
   private currentInputTranscription: string = '';
   private currentOutputTranscription: string = '';
@@ -237,13 +242,28 @@ export class GeminiLiveService {
   }
 
   private async startAudioInput(callbacks: GeminiLiveCallbacks) {
-    if (!this.inputContext) return;
+    if (!this.inputContext || this.isDisconnecting) return;
     try {
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const source = this.inputContext.createMediaStreamSource(this.mediaStream);
-      const processor = this.inputContext.createScriptProcessor(BUFFER_SIZE, 1, 1);
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          // sampleRate: INPUT_SAMPLE_RATE, // Remove constraint to prevent OverconstrainedError
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }
+      });
+      
+      // Double check context after async getUserMedia
+      if (!this.inputContext || this.isDisconnecting) {
+          this.mediaStream.getTracks().forEach(t => t.stop());
+          this.mediaStream = null;
+          return;
+      }
 
-      processor.onaudioprocess = (e) => {
+      this.inputStreamSource = this.inputContext.createMediaStreamSource(this.mediaStream);
+      this.processingNode = this.inputContext.createScriptProcessor(BUFFER_SIZE, 1, 1);
+
+      this.processingNode.onaudioprocess = (e) => {
         if (this.isMuted || !this.session || this.isDisconnecting) return;
         const inputData = e.inputBuffer.getChannelData(0);
         const pcmBlob = createPcmBlob(inputData);
@@ -253,8 +273,14 @@ export class GeminiLiveService {
         }
       };
 
-      source.connect(processor);
-      processor.connect(this.inputContext.destination);
+      this.inputStreamSource.connect(this.processingNode);
+      
+      // Connect to a GainNode with gain=0 to prevent monitoring (hearing your own voice)
+      // but keep the processor connected to destination so it continues to fire events
+      this.muteNode = this.inputContext.createGain();
+      this.muteNode.gain.value = 0;
+      this.processingNode.connect(this.muteNode);
+      this.muteNode.connect(this.inputContext.destination);
     } catch (err) {
       console.error("Microphone access failed", err);
       callbacks.onError("Microphone access denied.");
@@ -301,13 +327,20 @@ export class GeminiLiveService {
     if (base64Audio && this.outputContext && this.outputNode && !this.isDisconnecting) {
         try {
             const audioBytes = decodeBase64(base64Audio);
-            // Calculate volume for visualizer
-            const sum = audioBytes.reduce((acc, byte) => acc + Math.abs(byte - 128), 0);
-            callbacks.onAudioData(sum / Math.min(audioBytes.length, 50));
-
             // Queue Audio
             this.nextStartTime = Math.max(this.nextStartTime, this.outputContext.currentTime);
             const audioBuffer = await decodeAudioData(audioBytes, this.outputContext, OUTPUT_SAMPLE_RATE, 1);
+
+            // Calculate volume for visualizer from decoded audio (Float32)
+            const channelData = audioBuffer.getChannelData(0);
+            let sum = 0;
+            // Process a subset of samples to save CPU
+            for (let i = 0; i < channelData.length; i += 10) {
+                sum += Math.abs(channelData[i]);
+            }
+            const avg = sum / (channelData.length / 10);
+            // Scale up for visualizer (avg is 0-1 range usually very small for speech)
+            callbacks.onAudioData(avg * 100);
 
             const source = this.outputContext.createBufferSource();
             source.buffer = audioBuffer;
@@ -367,6 +400,23 @@ export class GeminiLiveService {
     });
     this.activeSources.clear();
     console.log('Stopped all audio sources');
+
+    // Clean up input pipeline
+    if (this.processingNode) {
+        try { 
+            this.processingNode.disconnect(); 
+            this.processingNode.onaudioprocess = null; 
+        } catch {}
+        this.processingNode = null;
+    }
+    if (this.inputStreamSource) {
+        try { this.inputStreamSource.disconnect(); } catch {}
+        this.inputStreamSource = null;
+    }
+    if (this.muteNode) {
+        try { this.muteNode.disconnect(); } catch {}
+        this.muteNode = null;
+    }
 
     // Disconnect and null out the output node
     if (this.outputNode) {
