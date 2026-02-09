@@ -151,9 +151,8 @@ export class GeminiLiveService {
       
       this.outputNode = this.outputContext.createGain();
       
-      // Smart Volume Management: Mobile devices often have lower output limits in "call mode"
-      const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      this.outputNode.gain.value = isMobile ? 2.5 : 1.0; 
+      // standard volume
+      this.outputNode.gain.value = 1.0;
       
       this.outputNode.connect(this.outputContext.destination);
     } catch (e) {
