@@ -147,13 +147,15 @@ export class GeminiLiveService {
   private initializeAudioContext() {
     try {
       this.inputContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)({ sampleRate: INPUT_SAMPLE_RATE });
-      this.outputContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)({ sampleRate: OUTPUT_SAMPLE_RATE });
+      // Remove explicit sampleRate for output to let the browser use the hardware rate
+      // This prevents resampling issues and artifacts, especially on mobile devices
+      this.outputContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       
       this.outputNode = this.outputContext.createGain();
       
-      // Smart Volume Management: Mobile devices often have lower output limits in "call mode"
-      const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      this.outputNode.gain.value = isMobile ? 2.5 : 1.0; 
+      // Initialize volume to standard 1.0 (100%)
+      // Removed mobile-specific boost (2.5x) which was causing distortion/clipping
+      this.outputNode.gain.value = 1.0;
       
       this.outputNode.connect(this.outputContext.destination);
     } catch (e) {
