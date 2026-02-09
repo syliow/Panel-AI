@@ -150,6 +150,11 @@ export class GeminiLiveService {
       this.outputContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)({ sampleRate: OUTPUT_SAMPLE_RATE });
       
       this.outputNode = this.outputContext.createGain();
+      
+      // Smart Volume Management: Mobile devices often have lower output limits in "call mode"
+      const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      this.outputNode.gain.value = isMobile ? 2.5 : 1.0; 
+      
       this.outputNode.connect(this.outputContext.destination);
     } catch (e) {
       console.error("AudioContext initialization failed", e);
@@ -382,6 +387,14 @@ export class GeminiLiveService {
   }
 
   public setMute(muted: boolean) { this.isMuted = muted; }
+
+  public setOutputVolume(volume: number) {
+      if (this.outputNode) {
+          // Clamp volume between 0 and 5 (500% max)
+          const v = Math.max(0, Math.min(5, volume));
+          this.outputNode.gain.value = v;
+      }
+  }
 
   public async disconnect() {
     if (this.isDisconnecting) return;

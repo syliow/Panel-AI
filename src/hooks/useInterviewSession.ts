@@ -192,6 +192,9 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
     toggleMute,
     handleEndCall,
     startInterview,
+    setAiVolume: (vol: number) => { 
+        if(serviceRef.current) serviceRef.current.setOutputVolume(vol); 
+    },
     stopTimer: () => { if(timerRef.current) clearInterval(timerRef.current); }
   };
 }
