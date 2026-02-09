@@ -100,6 +100,7 @@ describe('GeminiLiveService Audio Configuration', () => {
 
     // First call is input (with 16000), second is output (should be undefined)
     const outputContextCallArgs = mockAudioContext.mock.calls[1];
+    // @ts-ignore
     expect(outputContextCallArgs[0]).toBeUndefined();
 
     // Check Gain Value
@@ -126,6 +127,7 @@ describe('GeminiLiveService Audio Configuration', () => {
 
     // Check AudioContext constructor arguments
     const outputContextCallArgs = mockAudioContext.mock.calls[1];
+    // @ts-ignore
     expect(outputContextCallArgs[0]).toBeUndefined();
 
     // Check Gain Value
