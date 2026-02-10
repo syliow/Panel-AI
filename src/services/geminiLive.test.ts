@@ -85,7 +85,7 @@ describe('GeminiLiveService Audio Configuration', () => {
     });
 
     const service = new GeminiLiveService();
-    await service.connect({ jobTitle: 'Developer', interviewType: 'Technical' } as any, {
+    await service.connect({ jobTitle: 'Developer', interviewType: 'Technical' } as any, 'dummy-token', {
         onOpen: jest.fn(),
         onClose: jest.fn(),
         onError: jest.fn(),
@@ -114,7 +114,7 @@ describe('GeminiLiveService Audio Configuration', () => {
     });
 
     const service = new GeminiLiveService();
-    await service.connect({ jobTitle: 'Developer', interviewType: 'Technical' } as any, {
+    await service.connect({ jobTitle: 'Developer', interviewType: 'Technical' } as any, 'dummy-token', {
         onOpen: jest.fn(),
         onClose: jest.fn(),
         onError: jest.fn(),
@@ -130,5 +130,11 @@ describe('GeminiLiveService Audio Configuration', () => {
 
     // Check Gain Value
     expect(mockGainNode.gain.value).toBe(1.0);
+
+    // Verify fetch call
+    expect(global.fetch).toHaveBeenCalledWith('/api/live-session', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ token: 'dummy-token' })
+    }));
   });
 });
