@@ -1,0 +1,19 @@
+
+> panel-ai@0.0.0 dev
+> next dev
+
+   ▲ Next.js 15.1.11
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.2:3000
+
+ ✓ Starting...
+ ✓ Ready in 1816ms
+ ○ Compiling / ...
+ ✓ Compiled / in 10.6s (784 modules)
+ GET / 200 in 11817ms
+ ✓ Compiled in 1244ms (318 modules)
+ GET / 200 in 44ms
+ ○ Compiling /api/suggestions ...
+ ✓ Compiled /api/suggestions in 2.1s (904 modules)
+ POST /api/suggestions 500 in 2555ms
+ POST /api/validate-title 500 in 2772ms

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyTurnstileToken } from '@/utils/turnstile';
 
 // Simple in-memory rate limiter (resets on server restart)
 // For production, use Redis or a proper rate limiting service
@@ -27,6 +28,9 @@ if (typeof setInterval !== 'undefined') {
 export const dynamic = 'force-dynamic';
 
 function getClientIP(request: NextRequest): string {
+  // Use platform-provided IP if available (more secure on Vercel/Netlify)
+  if ((request as any).ip) return (request as any).ip;
+
   const forwarded = request.headers.get('x-forwarded-for');
   const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
   return ip;
@@ -61,9 +65,9 @@ function checkRateLimit(ip: string): boolean {
 // This endpoint provides the API key for the Gemini Live connection
 // Security measures implemented:
 // 1. Rate limiting per IP
+// 2. Turnstile verification (Anti-bot)
 
-// GET method (no Turnstile needed)
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request);
   
   // Rate limiting
@@ -74,11 +78,32 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  
-  if (!apiKey) {
-    return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
-  }
+  try {
+    const body = await request.json();
+    const { token } = body;
 
-  return NextResponse.json({ apiKey });
+    // Verify Turnstile token
+    const verification = await verifyTurnstileToken(token, clientIP);
+
+    if (!verification.success) {
+      return NextResponse.json(
+        { error: verification.error || 'Security verification failed' },
+        { status: 401 }
+      );
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+      return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
+    }
+
+    return NextResponse.json({ apiKey });
+  } catch (error) {
+    console.error('Error processing request:', error);
+    return NextResponse.json(
+      { error: 'Invalid request' },
+      { status: 400 }
+    );
+  }
 }
