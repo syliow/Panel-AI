@@ -85,7 +85,7 @@ describe('GeminiLiveService Audio Configuration', () => {
     });
 
     const service = new GeminiLiveService();
-    await service.connect({ jobTitle: 'Developer', interviewType: 'Technical' } as any, {
+    await service.connect({ jobTitle: 'Developer', interviewType: 'Technical' } as any, null, {
         onOpen: jest.fn(),
         onClose: jest.fn(),
         onError: jest.fn(),
@@ -114,7 +114,7 @@ describe('GeminiLiveService Audio Configuration', () => {
     });
 
     const service = new GeminiLiveService();
-    await service.connect({ jobTitle: 'Developer', interviewType: 'Technical' } as any, {
+    await service.connect({ jobTitle: 'Developer', interviewType: 'Technical' } as any, null, {
         onOpen: jest.fn(),
         onClose: jest.fn(),
         onError: jest.fn(),
