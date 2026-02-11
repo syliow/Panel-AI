@@ -29,9 +29,20 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
   const [error, setError] = useState<string | null>(null);
   const [showResumeInfo, setShowResumeInfo] = useState(false);
   const [showQuotaModal, setShowQuotaModal] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
 
   const { suggestions, clearSuggestions } = useJobTitleSuggestions(jobTitle);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSelectedIndex(-1);
+  }, [suggestions, showSuggestions]);
+
+  useEffect(() => {
+    if (suggestions.length > 0) {
+      setShowSuggestions(true);
+    }
+  }, [suggestions]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -42,6 +53,23 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev + 1) % suggestions.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev - 1 + suggestions.length) % suggestions.length);
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+      e.preventDefault();
+      handleSuggestionClick(suggestions[selectedIndex]);
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  };
 
   const handleHover = (e: React.MouseEvent | React.FocusEvent, text: string) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -163,11 +191,17 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
                       type="text"
                       required
                       autoComplete="off"
+                      role="combobox"
+                      aria-autocomplete="list"
+                      aria-controls="job-title-listbox"
+                      aria-expanded={showSuggestions}
+                      aria-activedescendant={selectedIndex >= 0 ? `suggestion-${selectedIndex}` : undefined}
                       placeholder="e.g. Lead Developer"
                       className={`w-full bg-transparent border-b-2 py-2 text-xl font-medium text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-700 focus:outline-none transition-colors rounded-none ${
                           error ? 'border-red-500' : 'border-slate-200 dark:border-slate-800 focus:border-black dark:focus:border-white'
                       }`}
                       value={jobTitle}
+                      onKeyDown={handleKeyDown}
                       onFocus={() => { if (suggestions.length > 0 && jobTitle.length >= 3) setShowSuggestions(true); }}
                       onChange={(e) => {
                           setJobTitle(e.target.value);
@@ -176,9 +210,21 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
                       }}
                   />
                   {showSuggestions && suggestions.length > 0 && (
-                      <div className="absolute top-full left-0 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl z-20 mt-1 flex flex-col overflow-hidden">
+                      <div id="job-title-listbox" role="listbox" className="absolute top-full left-0 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl z-20 mt-1 flex flex-col overflow-hidden">
                           {suggestions.map((s, i) => (
-                              <button key={i} type="button" onClick={() => handleSuggestionClick(s)} className="px-4 py-3 text-left text-[11px] font-bold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 border-b border-slate-50 dark:border-slate-800 last:border-0">
+                              <button
+                                key={i}
+                                id={`suggestion-${i}`}
+                                role="option"
+                                aria-selected={i === selectedIndex}
+                                type="button"
+                                onClick={() => handleSuggestionClick(s)}
+                                className={`px-4 py-3 text-left text-[11px] font-bold border-b border-slate-50 dark:border-slate-800 last:border-0 transition-colors ${
+                                  i === selectedIndex
+                                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white'
+                                    : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                }`}
+                              >
                                   {s}
                               </button>
                           ))}

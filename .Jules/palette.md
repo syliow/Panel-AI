@@ -5,3 +5,7 @@
 ## 2026-02-06 - Tooltips & Toggle Accessibility
 **Learning:** Custom tooltips bound only to `onMouseEnter` exclude keyboard users, and custom toggle buttons without ARIA states confuse screen reader users.
 **Action:** Always pair `onMouseEnter` with `onFocus`, and use `aria-pressed` for button-based toggles to ensure inclusive access.
+
+## 2026-02-06 - Accessible Autocomplete
+**Learning:** Custom autocomplete suggestions were completely inaccessible to keyboard users, requiring manual implementation of the ARIA combobox pattern.
+**Action:** When implementing custom dropdowns, always implement the full ARIA combobox pattern (activedescendant, listbox, option) and keyboard handlers (ArrowUp/Down, Enter, Escape).
