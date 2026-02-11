@@ -8,6 +8,7 @@ import { QuotaModal } from './QuotaModal';
 import { RateLimitModal } from './RateLimitModal';
 import { useInterviewSession } from '@/hooks/useInterviewSession';
 import { InterviewHeader } from './InterviewHeader';
+import { MicStatus } from './MicStatus';
 
 interface InterviewScreenProps {
   config: InterviewConfig;
@@ -24,7 +25,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
     error,
     transcript,
     isMuted,
-    volume,
+    subscribeToVolume,
     isAiSpeaking,
     duration,
     hasStarted,
@@ -140,30 +141,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
             {hasStarted && status === 'connected' && transcript.length === 0 && !isAiSpeaking && (
                 <div className="flex-1 flex flex-col items-center justify-center p-8">
                    <div className="text-center space-y-6 max-w-md">
-                      {/* Microphone icon with status feedback */}
-                      <div className="flex justify-center flex-col items-center gap-4">
-                        <div className="relative">
-                          {volume > 0 && (
-                             <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20"></div>
-                          )}
-                          <div className={`relative p-6 rounded-full transition-colors duration-300 ${volume > 0 ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'}`}>
-                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-12 w-12 transition-colors duration-300 ${volume > 0 ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                            </svg>
-                          </div>
-                        </div>
-                        
-                        {/* Mic Status Label */}
-                        {volume > 0 ? (
-                            <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest animate-pulse">
-                                Listening...
-                            </span>
-                        ) : (
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                Waiting for audio...
-                            </span>
-                        )}
-                      </div>
+                      <MicStatus subscribeToVolume={subscribeToVolume} />
                       
                       {/* Instruction */}
                       <div className="space-y-3">
@@ -221,7 +199,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
           onToggleMute={toggleMute} 
           onEndCall={() => setIsEnding(true)} 
           isActive={status === 'connected' && !isEnding}
-          volumeLevel={volume}
+          subscribeToVolume={subscribeToVolume}
         />
       )}
 
