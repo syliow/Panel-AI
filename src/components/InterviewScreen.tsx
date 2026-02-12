@@ -8,6 +8,7 @@ import { QuotaModal } from './QuotaModal';
 import { RateLimitModal } from './RateLimitModal';
 import { useInterviewSession } from '@/hooks/useInterviewSession';
 import { InterviewHeader } from './InterviewHeader';
+import { useTurnstile } from './Turnstile';
 
 interface InterviewScreenProps {
   config: InterviewConfig;
@@ -17,7 +18,7 @@ interface InterviewScreenProps {
 export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndSession }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [countdown, setCountdown] = useState(5);
-  
+  const { token, TurnstileWidget } = useTurnstile();
 
   const {
     status,
@@ -103,19 +104,36 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
 
                       
                       <button
-                         onClick={() => startInterview()}
-                         className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-black dark:bg-white text-white dark:text-black text-sm font-bold uppercase tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-105"
+                         onClick={() => startInterview(token)}
+                         disabled={!token}
+                         className={`group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-black dark:bg-white text-white dark:text-black text-sm font-bold uppercase tracking-widest transition-all shadow-xl hover:shadow-2xl hover:scale-105 ${!token ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                         </svg>
-                         Start Interview
+                         {token ? (
+                           <>
+                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                             </svg>
+                             Start Interview
+                           </>
+                         ) : (
+                           <>
+                              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white dark:text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Verifying...
+                           </>
+                         )}
                       </button>
                       
                       {/* Simple hint */}
                       <p className="text-xs text-slate-400 dark:text-slate-600 max-w-xs mx-auto text-center">
                         Click the button above to begin your interview
                       </p>
+
+                      <div className="absolute opacity-0 pointer-events-none">
+                         <TurnstileWidget size="invisible" />
+                      </div>
                    </div>
                 </div>
             )}
