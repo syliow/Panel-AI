@@ -10,7 +10,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
   const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(0);
+  // volume state removed to prevent high-frequency re-renders
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [duration, setDuration] = useState(0);
   const [hasStarted, setHasStarted] = useState(false); // Track if user has started
@@ -26,6 +26,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
   const timerRef = useRef<number | null>(null);
   const volumeRef = useRef<number>(0);
   const volumeRafRef = useRef<number | null>(null);
+  const subscribersRef = useRef<Set<(vol: number) => void>>(new Set());
 
   const disconnect = useCallback(async () => {
     if (serviceRef.current) {
@@ -37,6 +38,13 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
     await disconnect();
     onSessionEnd(transcript);
   }, [disconnect, onSessionEnd, transcript]);
+
+  const subscribeToVolume = useCallback((callback: (vol: number) => void) => {
+    subscribersRef.current.add(callback);
+    return () => {
+      subscribersRef.current.delete(callback);
+    };
+  }, []);
 
   // Start the interview - called by user action
   const startInterview = useCallback(() => {
@@ -96,7 +104,8 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
 
           if (!volumeRafRef.current) {
               volumeRafRef.current = requestAnimationFrame(() => {
-                  setVolume(volumeRef.current);
+                  const v = volumeRef.current;
+                  subscribersRef.current.forEach(cb => cb(v));
                   volumeRafRef.current = null;
               });
           }
@@ -177,7 +186,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
     error,
     transcript,
     isMuted,
-    volume,
+    subscribeToVolume,
     isAiSpeaking,
     duration,
     hasStarted,
