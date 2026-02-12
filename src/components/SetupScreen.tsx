@@ -24,6 +24,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
   const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
 
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [isParsingResume, setIsParsingResume] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +33,12 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
 
   const { suggestions, clearSuggestions } = useJobTitleSuggestions(jobTitle);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (suggestions.length > 0) {
+      setShowSuggestions(true);
+    }
+  }, [suggestions]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -99,6 +106,27 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
     setJobTitle(s);
     clearSuggestions();
     setShowSuggestions(false);
+    setActiveIndex(-1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex(prev => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === 'Enter') {
+      if (activeIndex >= 0) {
+        e.preventDefault();
+        handleSuggestionClick(suggestions[activeIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setActiveIndex(-1);
+    }
   };
 
   return (
@@ -173,12 +201,36 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
                           setJobTitle(e.target.value);
                           if (error) setError(null);
                           if (suggestions.length > 0) setShowSuggestions(true);
+                          setActiveIndex(-1);
                       }}
+                      onKeyDown={handleKeyDown}
+                      role="combobox"
+                      aria-autocomplete="list"
+                      aria-expanded={showSuggestions && suggestions.length > 0}
+                      aria-controls="job-title-listbox"
+                      aria-activedescendant={activeIndex >= 0 ? `suggestion-${activeIndex}` : undefined}
                   />
                   {showSuggestions && suggestions.length > 0 && (
-                      <div className="absolute top-full left-0 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl z-20 mt-1 flex flex-col overflow-hidden">
+                      <div
+                        id="job-title-listbox"
+                        role="listbox"
+                        className="absolute top-full left-0 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl z-20 mt-1 flex flex-col overflow-hidden"
+                      >
                           {suggestions.map((s, i) => (
-                              <button key={i} type="button" onClick={() => handleSuggestionClick(s)} className="px-4 py-3 text-left text-[11px] font-bold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 border-b border-slate-50 dark:border-slate-800 last:border-0">
+                              <button
+                                key={i}
+                                id={`suggestion-${i}`}
+                                type="button"
+                                onClick={() => handleSuggestionClick(s)}
+                                role="option"
+                                aria-selected={i === activeIndex}
+                                tabIndex={-1}
+                                className={`px-4 py-3 text-left text-[11px] font-bold border-b border-slate-50 dark:border-slate-800 last:border-0 ${
+                                  i === activeIndex
+                                    ? 'bg-slate-100 dark:bg-slate-800 text-black dark:text-white'
+                                    : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                }`}
+                              >
                                   {s}
                               </button>
                           ))}
