@@ -24,6 +24,15 @@ Panel AI is a mock interview app built on Next.js that uses Google Gemini for li
 - Google Gemini API
 - Netlify
 
+## Built with AI Agents
+
+I built this project to learn how to effectively integrate AI agents into a real-world workflow and to explore how different model options perform under practical constraints:
+
+- **Cursor**: Used as an AI partner to speed up development and handle the architectural implementation.
+- **Model Choice (Gemini Flash vs. Gemma 3)**: I originally used Gemini Flash but moved to Gemma 3 mid-development because the free-tier rate limits were too restrictive for a real-time experience.
+- **The Result**: Switching to **Gemma 3 4B-IT** provided better rate limits at zero cost. Even though it's a smaller model, it works perfectly for this project when paired with solid parsing logic and error handling.
+- **Prompt Optimization**: Refined the system instructions through multiple iterations to ensure the AI maintains a consistent persona and handles multi-phase interview flows without losing focus.
+
 ## Getting Started
 
 ### Prerequisites
@@ -83,9 +92,9 @@ npm run start
 
 ## Environment Variables
 
-| Variable         | Description                | Required |
-| ---------------- | -------------------------- | -------- |
-| `GEMINI_API_KEY` | Google Gemini API key      | Yes      |
+| Variable         | Description           | Required |
+| ---------------- | --------------------- | -------- |
+| `GEMINI_API_KEY` | Google Gemini API key | Yes      |
 
 ## Project Structure
 
