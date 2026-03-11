@@ -61,9 +61,10 @@ function checkRateLimit(ip: string): boolean {
 // This endpoint provides the API key for the Gemini Live connection
 // Security measures implemented:
 // 1. Rate limiting per IP
+// 2. Turnstile verification (Bot protection)
 
-// GET method (no Turnstile needed)
-export async function GET(request: NextRequest) {
+// POST method (Requires Turnstile token)
+export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request);
   
   // Rate limiting
@@ -72,6 +73,43 @@ export async function GET(request: NextRequest) {
       { error: 'Too many requests. Please try again later.' }, 
       { status: 429 }
     );
+  }
+
+  // Turnstile Verification
+  const secretKey = process.env.TURNSTILE_SECRET_KEY;
+  if (secretKey) {
+      let token: string | undefined;
+      try {
+          const body = await request.json();
+          token = body.token;
+      } catch (e) {
+          return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+      }
+
+      if (!token) {
+          return NextResponse.json({ error: 'Missing Turnstile token' }, { status: 400 });
+      }
+
+      const formData = new FormData();
+      formData.append('secret', secretKey);
+      formData.append('response', token);
+      formData.append('remoteip', clientIP);
+
+      try {
+          const result = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+              body: formData,
+              method: 'POST',
+          });
+
+          const outcome = await result.json();
+          if (!outcome.success) {
+               console.error('Turnstile verification failed:', outcome);
+               return NextResponse.json({ error: 'Turnstile verification failed' }, { status: 403 });
+          }
+      } catch (e) {
+          console.error('Turnstile verification error:', e);
+          return NextResponse.json({ error: 'Verification service unavailable' }, { status: 500 });
+      }
   }
 
   const apiKey = process.env.GEMINI_API_KEY;

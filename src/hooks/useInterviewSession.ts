@@ -39,7 +39,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
   }, [disconnect, onSessionEnd, transcript]);
 
   // Start the interview - called by user action
-  const startInterview = useCallback(() => {
+  const startInterview = useCallback((token?: string | null) => {
     if (hasStarted) return;
     
     setHasStarted(true);
@@ -146,7 +146,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
       }
     };
 
-    service.connect(config, callbacks).catch(err => {
+    service.connect(config, token || null, callbacks).catch(err => {
         setStatus('error');
         setError(err.message);
     });
