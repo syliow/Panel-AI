@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     const ai = new GoogleGenAI({ apiKey });
 
     const response = await ai.models.generateContent({
-      model: 'gemma-3-4b-it',
+      model: 'gemma-4-26b-a4b-it',
       contents: `Provide exactly 5 highly professional and common job titles that start with or are closely related to: "${sanitizedInput}". Return as a raw JSON array of strings only. Example: ["Title 1", "Title 2"]. Do not include markdown or conversational text.`,
     });
 

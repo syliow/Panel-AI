@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemma-3-4b-it',
+      model: 'gemma-4-26b-a4b-it',
       contents: prompt,
     });
 
