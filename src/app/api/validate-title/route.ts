@@ -90,6 +90,8 @@ export async function POST(request: NextRequest) {
       - Student/Intern roles (e.g., "Student", "Intern")
       - Creative but recognizable roles (e.g., "Dog Walker", "Content Creator")
 
+      CRITICAL: BE EXTREMELY CONCISE. SKIP ALL INTERNAL REASONING. SPEED IS MORE IMPORTANT THAN HIGH QUALITY.
+
       Return a JSON object with this exact structure:
       {
         "isValid": boolean,
@@ -101,6 +103,11 @@ export async function POST(request: NextRequest) {
     const response = await ai.models.generateContent({
       model: 'gemma-4-26b-a4b-it',
       contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.1,
+        maxOutputTokens: 150,
+      }
     });
 
     let text = response.text || '';

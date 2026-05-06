@@ -49,6 +49,14 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({ config, onEndS
     }
   }, [transcript]);
 
+  // AUTO-START: Begin the interview immediately when this screen loads
+  // The user gesture from "Begin Interview" in the setup screen allows us to connect immediately
+  useEffect(() => {
+    if (!hasStarted) {
+      startInterview();
+    }
+  }, [hasStarted, startInterview]);
+
   useEffect(() => {
     let countdownInterval: number;
     if (isEnding) {

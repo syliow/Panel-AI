@@ -60,39 +60,16 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({ onStart }) => {
     setError(null);
     setShowSuggestions(false);
 
-    let resumeContext = '';
     const formattedJobTitle = toTitleCase(jobTitle.trim());
 
-    try {
-        if (resumeFile) {
-            setIsParsingResume(true);
-            resumeContext = await parseResume(resumeFile);
-            setIsParsingResume(false);
-        }
-
-        const validation = await validateJobTitle(formattedJobTitle);
-        if (!validation.isValid) {
-            setError(validation.message || "Please enter a valid job title.");
-            setIsSubmitting(false);
-            return;
-        }
-
-        onStart({ 
-          jobTitle: formattedJobTitle, 
-          interviewType,
-          difficulty: interviewType === 'Technical' ? difficulty : undefined,
-          resumeContext
-        });
-    } catch (err: unknown) {
-        console.error(err);
-        if (err instanceof Error && err.message === 'QUOTA_EXCEEDED') {
-            setShowQuotaModal(true);
-        } else {
-            setError("Setup failed. Please check your connection.");
-        }
-        setIsSubmitting(false);
-        setIsParsingResume(false);
-    }
+    // INSTANT TRANSITION: Don't wait for validation or parsing here.
+    // We pass the raw file and let the InterviewScreen handle it during the "Connecting" phase.
+    onStart({ 
+      jobTitle: formattedJobTitle, 
+      interviewType,
+      difficulty: interviewType === 'Technical' ? difficulty : undefined,
+      resumeFile: resumeFile || undefined
+    });
   };
 
   const handleSuggestionClick = (s: string) => {

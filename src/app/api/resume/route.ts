@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     const ai = new GoogleGenAI({ apiKey });
 
-    const prompt = "Analyze this resume and extract the candidate's key skills, work history summary, and recent projects. Format it as a concise text summary suitable for an interviewer to read before an interview. Do not include any personal information like phone numbers, email addresses, or physical addresses.";
+    const prompt = "Analyze this resume and extract the candidate's key skills, work history summary, and recent projects. Format it as a concise text summary suitable for an interviewer to read before an interview. Do not include any personal information like phone numbers, email addresses, or physical addresses.\n\nCRITICAL: BE EXTREMELY CONCISE. SKIP ALL INTERNAL REASONING AND EXPLANATIONS. SPEED IS MORE IMPORTANT THAN HIGH QUALITY.";
 
     const response = await ai.models.generateContent({
       model: 'gemma-4-26b-a4b-it',
@@ -95,6 +95,10 @@ export async function POST(request: NextRequest) {
           { inlineData: { mimeType: file.type, data: base64Data } },
           { text: prompt }
         ]
+      },
+      config: {
+        temperature: 0.1,
+        maxOutputTokens: 500,
       }
     });
 

@@ -97,6 +97,8 @@ export async function POST(request: NextRequest) {
     const prompt = `
       You are an expert interview coach. Analyze the following interview transcript and provide constructive feedback with quantitative scoring.
       
+      CRITICAL INSTRUCTION: BE EXTREMELY CONCISE. SKIP ALL INTERNAL REASONING AND EXPLANATIONS. SPEED IS MORE IMPORTANT THAN HIGH QUALITY.
+      
       **Interview Details:**
       - Role: ${safeJobTitle}
       - Type: ${safeInterviewType}
@@ -136,6 +138,11 @@ export async function POST(request: NextRequest) {
     const response = await ai.models.generateContent({
       model: 'gemma-4-26b-a4b-it',
       contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.1,
+        maxOutputTokens: 1024,
+      }
     });
 
     let jsonText = response.text || '';

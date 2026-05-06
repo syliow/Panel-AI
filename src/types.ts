@@ -7,6 +7,7 @@ export interface InterviewConfig {
   interviewType: InterviewType;
   difficulty?: DifficultyLevel;
   resumeContext?: string; // Extracted text from uploaded resume
+  resumeFile?: File; // Raw file to be parsed in the background
 }
 
 export interface TranscriptItem {

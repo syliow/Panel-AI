@@ -5,6 +5,8 @@ import { GeminiLiveService, GeminiLiveCallbacks } from '@/services/geminiLive';
 import { InterviewConfig, TranscriptItem, ConnectionStatus } from '@/types';
 import { MAX_INTERVIEW_DURATION, INACTIVITY_TIMEOUT_MS } from '@/constants';
 
+import { parseResume } from '@/services/resumeService';
+
 export function useInterviewSession(config: InterviewConfig, onSessionEnd: (transcript: TranscriptItem[]) => void) {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected'); // Start disconnected, wait for user action
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +41,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
   }, [disconnect, onSessionEnd, transcript]);
 
   // Start the interview - called by user action
-  const startInterview = useCallback(() => {
+  const startInterview = useCallback(async () => {
     if (hasStarted) return;
     
     setHasStarted(true);
@@ -48,6 +50,18 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
     const service = new GeminiLiveService();
     serviceRef.current = service;
     lastActivityRef.current = Date.now();
+
+    // BACKGROUND TASK: If we have a file but no context yet, parse it now while showing "Connecting"
+    let finalConfig = { ...config };
+    if (config.resumeFile && !config.resumeContext) {
+      try {
+        const context = await parseResume(config.resumeFile);
+        finalConfig.resumeContext = context;
+      } catch (err) {
+        console.error("Resume parsing failed in background:", err);
+        // We continue even if parsing fails, just without resume context
+      }
+    }
 
     const callbacks: GeminiLiveCallbacks = {
       onOpen: () => {
@@ -146,7 +160,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
       }
     };
 
-    service.connect(config, callbacks).catch(err => {
+    service.connect(finalConfig, callbacks).catch(err => {
         setStatus('error');
         setError(err.message);
     });
