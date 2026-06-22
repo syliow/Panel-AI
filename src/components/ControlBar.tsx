@@ -1,13 +1,15 @@
 'use client';
 
 import React from 'react';
+import { SubscribeToVolume } from '@/types';
+import { AudioVisualizer } from './AudioVisualizer';
 
 interface ControlBarProps {
   isMuted: boolean;
   onToggleMute: () => void;
   onEndCall: () => void;
   isActive: boolean;
-  volumeLevel: number;
+  subscribeToVolume: SubscribeToVolume;
 }
 
 export const ControlBar: React.FC<ControlBarProps> = ({ 
@@ -15,7 +17,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({
   onToggleMute, 
   onEndCall, 
   isActive,
-  volumeLevel 
+  subscribeToVolume
 }) => {
   return (
     <div className="flex-none bg-white/95 dark:bg-black/95 border-t border-slate-100 dark:border-slate-900 px-4 py-4 md:p-6 z-10 backdrop-blur-md transition-colors duration-300">
@@ -48,10 +50,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({
             aria-label={isMuted ? "Unmute Microphone" : "Mute Microphone"}
           >
              {!isMuted && isActive && (
-                <div 
-                    className="absolute inset-0 rounded-full border border-slate-900 dark:border-white opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ transform: `scale(${1 + (volumeLevel * 0.4)})`}}
-                />
+                <AudioVisualizer subscribeToVolume={subscribeToVolume} isMuted={isMuted} />
             )}
 
             {isMuted ? (

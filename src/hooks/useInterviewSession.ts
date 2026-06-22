@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GeminiLiveService, GeminiLiveCallbacks } from '@/services/geminiLive';
-import { InterviewConfig, TranscriptItem, ConnectionStatus } from '@/types';
+import { InterviewConfig, TranscriptItem, ConnectionStatus, VolumeCallback, SubscribeToVolume } from '@/types';
 import { MAX_INTERVIEW_DURATION, INACTIVITY_TIMEOUT_MS } from '@/constants';
 
 import { parseResume } from '@/services/resumeService';
@@ -12,7 +12,6 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
   const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(0);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [duration, setDuration] = useState(0);
   const [hasStarted, setHasStarted] = useState(false); // Track if user has started
@@ -28,6 +27,14 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
   const timerRef = useRef<number | null>(null);
   const volumeRef = useRef<number>(0);
   const volumeRafRef = useRef<number | null>(null);
+  const volumeSubscribers = useRef<Set<VolumeCallback>>(new Set());
+
+  const subscribeToVolume: SubscribeToVolume = useCallback((callback) => {
+    volumeSubscribers.current.add(callback);
+    return () => {
+      volumeSubscribers.current.delete(callback);
+    };
+  }, []);
 
   const disconnect = useCallback(async () => {
     if (serviceRef.current) {
@@ -110,7 +117,8 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
 
           if (!volumeRafRef.current) {
               volumeRafRef.current = requestAnimationFrame(() => {
-                  setVolume(volumeRef.current);
+                  const v = volumeRef.current;
+                  volumeSubscribers.current.forEach(cb => cb(v));
                   volumeRafRef.current = null;
               });
           }
@@ -191,7 +199,7 @@ export function useInterviewSession(config: InterviewConfig, onSessionEnd: (tran
     error,
     transcript,
     isMuted,
-    volume,
+    subscribeToVolume,
     isAiSpeaking,
     duration,
     hasStarted,
