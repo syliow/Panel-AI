@@ -18,7 +18,7 @@ export const TranscriptMessage = React.memo<TranscriptMessageProps>(({ item, isS
   };
 
   return (
-    <div className={`flex w-full mb-6 animate-fade-in ${isAI ? 'justify-start' : 'justify-end'}`}>
+    <li className={`flex w-full mb-6 animate-fade-in ${isAI ? 'justify-start' : 'justify-end'}`}>
       <div 
         className={`relative max-w-[85%] md:max-w-[75%] lg:max-w-[65%] flex flex-col p-5 border transition-all duration-300 rounded-2xl ${
           isAI 
@@ -60,7 +60,7 @@ export const TranscriptMessage = React.memo<TranscriptMessageProps>(({ item, isS
           )}
         </div>
       </div>
-    </div>
+    </li>
   );
 });
 
