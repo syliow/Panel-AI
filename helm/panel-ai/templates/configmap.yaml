@@ -1,0 +1,10 @@
+# Shared app settings. The API key belongs in a Secret, not here.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}
+data:
+  NODE_ENV: production
+  PORT: "3000"
+  HOSTNAME: "0.0.0.0"
+  NEXT_TELEMETRY_DISABLED: "1"
