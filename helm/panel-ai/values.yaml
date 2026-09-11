@@ -1,8 +1,9 @@
-replicaCount: 2
+replicaCount: 1
 
 image:
-  repository: panel-ai
-  # Required: the exact tag of the image you imported into k3s.
+  # For Docker Hub, use your username/repository, e.g. yourname/panel-ai.
+  repository: yiyi1107/panel-ai
+  # Required: the exact tag you built and imported or pushed.
   tag: ""
 
 resources:

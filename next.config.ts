@@ -3,6 +3,7 @@ import type { NextConfig } from 'next'
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  outputFileTracingRoot: __dirname,
   
   // Run lint separately with npm run lint.
   eslint: {

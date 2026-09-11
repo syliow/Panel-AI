@@ -10,12 +10,9 @@ metadata:
 spec:
   replicas: {{ .Values.replicaCount }}
 
-  # Start one extra pod during updates; keep the old pods until it is ready.
+  # Stop the old pod first to keep memory usage low. Updates briefly interrupt the app.
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+    type: Recreate
 
   # These labels must match the pod labels below and the Service selector.
   selector:
@@ -30,6 +27,10 @@ spec:
         app.kubernetes.io/name: panel-ai
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      # Credentials for pulling the private Docker Hub image.
+      imagePullSecrets:
+        - name: dockerhub
+
       # No Kubernetes API credentials are needed by the app.
       automountServiceAccountToken: false
 
@@ -43,9 +44,9 @@ spec:
 
       containers:
         - name: panel-ai
-          # Require an image tag and use the image already imported into k3s.
+          # Require a versioned image; download it if it is not already on the node.
           image: "{{ .Values.image.repository }}:{{ required "Set image.tag to the imported image tag" .Values.image.tag }}"
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 3000

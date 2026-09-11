@@ -1,18 +1,19 @@
-# Give the pods one stable address inside the cluster.
+# Expose the app on EC2 port 30080.
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ .Release.Name }}
 spec:
-  type: ClusterIP
+  type: NodePort
 
   # Send requests to pods with these matching labels.
   selector:
     app.kubernetes.io/name: panel-ai
     app.kubernetes.io/instance: {{ .Release.Name }}
 
-  # Service port 80 forwards to the pod's "http" port (3000).
+  # EC2 port 30080 forwards through the Service to app port 3000.
   ports:
     - name: http
       port: 80
       targetPort: http
+      nodePort: 30080
