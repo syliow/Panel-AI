@@ -1,13 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 
 interface ControlBarProps {
   isMuted: boolean;
   onToggleMute: () => void;
   onEndCall: () => void;
   isActive: boolean;
-  volumeLevel: number;
+  subscribeToVolume?: (callback: (vol: number) => void) => () => void;
 }
 
 export const ControlBar: React.FC<ControlBarProps> = ({ 
@@ -15,8 +15,23 @@ export const ControlBar: React.FC<ControlBarProps> = ({
   onToggleMute, 
   onEndCall, 
   isActive,
-  volumeLevel 
+  subscribeToVolume
 }) => {
+  const volumeRingRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!subscribeToVolume || !isActive || isMuted) return;
+
+    const unsubscribe = subscribeToVolume((vol) => {
+      if (volumeRingRef.current) {
+        // Direct DOM manipulation to avoid re-renders
+        volumeRingRef.current.style.transform = `scale(${1 + (vol * 0.4)})`;
+      }
+    });
+
+    return unsubscribe;
+  }, [subscribeToVolume, isActive, isMuted]);
+
   return (
     <div className="flex-none bg-white/95 dark:bg-black/95 border-t border-slate-100 dark:border-slate-900 px-4 py-4 md:p-6 z-10 backdrop-blur-md transition-colors duration-300">
       <div className="max-w-3xl mx-auto flex items-center justify-between">
@@ -49,8 +64,9 @@ export const ControlBar: React.FC<ControlBarProps> = ({
           >
              {!isMuted && isActive && (
                 <div 
+                    ref={volumeRingRef}
                     className="absolute inset-0 rounded-full border border-slate-900 dark:border-white opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ transform: `scale(${1 + (volumeLevel * 0.4)})`}}
+                    style={{ transform: 'scale(1)' }}
                 />
             )}
 
