@@ -1,0 +1,6 @@
+apiVersion: v2
+name: panel-ai
+description: Panel AI on a single EC2 k3s node
+type: application
+version: 0.1.0
+appVersion: "0.0.0"

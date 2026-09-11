@@ -22,7 +22,7 @@ const mockAudioContextInstance = {
   close: jest.fn(),
 };
 
-const mockAudioContext = jest.fn(() => mockAudioContextInstance);
+const mockAudioContext = jest.fn((_options?: AudioContextOptions) => mockAudioContextInstance);
 
 // Mock GoogleGenAI
 jest.mock('@google/genai', () => ({

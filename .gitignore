@@ -27,3 +27,11 @@ yarn-error.log*
 # Next.js
 *.tsbuildinfo
 next-env.d.ts
+
+# Local runtime configuration and SSH credentials
+.env.*
+!.env.example
+*.pem
+*.key
+kubeconfig
+kubeconfig.*

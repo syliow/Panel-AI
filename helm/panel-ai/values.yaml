@@ -1,0 +1,15 @@
+replicaCount: 1
+
+image:
+  # For Docker Hub, use your username/repository, e.g. yourname/panel-ai.
+  repository: yiyi1107/panel-ai
+  # Required: the exact tag you built and imported or pushed.
+  tag: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

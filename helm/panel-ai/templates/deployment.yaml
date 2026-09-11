@@ -1,0 +1,100 @@
+# Run the app's pods and replace them when the image changes.
+# .Release.Name is the name passed to Helm; .Values comes from values.yaml.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: panel-ai
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+
+  # Stop the old pod first to keep memory usage low. Updates briefly interrupt the app.
+  strategy:
+    type: Recreate
+
+  # These labels must match the pod labels below and the Service selector.
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: panel-ai
+      app.kubernetes.io/instance: {{ .Release.Name }}
+
+  # Everything under template describes each pod.
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: panel-ai
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      # Credentials for pulling the private Docker Hub image.
+      imagePullSecrets:
+        - name: dockerhub
+
+      # No Kubernetes API credentials are needed by the app.
+      automountServiceAccountToken: false
+
+      # Use the non-root user from Dockerfile and standard syscall protection.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: panel-ai
+          # Require a versioned image; download it if it is not already on the node.
+          image: "{{ .Values.image.repository }}:{{ required "Set image.tag to the imported image tag" .Values.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+
+          # Load ordinary settings from ConfigMap and the API key from Secret.
+          envFrom:
+            - configMapRef:
+                name: {{ .Release.Name }}
+          env:
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: panel-ai-secrets
+                  key: GEMINI_API_KEY
+
+          # Prevent the container from gaining extra Linux privileges.
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+
+          # Allow up to 150 seconds to start before the other checks begin.
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+
+          # Send traffic only when the app responds successfully.
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 5
+
+          # Restart the container after repeated health-check failures.
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 20
+
+          # Requests reserve capacity; limits cap each container's usage.
+          resources:
+            requests:
+              cpu: {{ .Values.resources.requests.cpu | quote }}
+              memory: {{ .Values.resources.requests.memory | quote }}
+            limits:
+              cpu: {{ .Values.resources.limits.cpu | quote }}
+              memory: {{ .Values.resources.limits.memory | quote }}
