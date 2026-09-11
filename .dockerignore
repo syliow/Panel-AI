@@ -8,7 +8,6 @@ node_modules
 .env.*
 coverage
 helm
-k8s
 docs
 scripts
 *.md

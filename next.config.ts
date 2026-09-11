@@ -2,10 +2,11 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   
-  // Netlify deployment settings
+  // Run lint separately with npm run lint.
   eslint: {
-    ignoreDuringBuilds: true, // Speeds up build on Netlify
+    ignoreDuringBuilds: true, // Avoid running ESLint twice
   },
   typescript: {
     ignoreBuildErrors: false, // Keep type checking
