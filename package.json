@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint .",
+    "test": "jest --runInBand",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@google/genai": "^1.38.0",
@@ -31,6 +33,7 @@
     "tailwindcss": "^3.4.0",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
-    "typescript": "~5.8.2"
+    "typescript": "~5.8.2",
+    "@eslint/eslintrc": "^3.3.1"
   }
 }

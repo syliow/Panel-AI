@@ -62,7 +62,7 @@ function checkRateLimit(ip: string): boolean {
 // Security measures implemented:
 // 1. Rate limiting per IP
 
-// GET method (no Turnstile needed)
+// Initialize the browser Live connection.
 export async function GET(request: NextRequest) {
   const clientIP = getClientIP(request);
   

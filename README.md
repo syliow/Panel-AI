@@ -37,7 +37,7 @@ I built this project to learn how to effectively integrate AI agents into a real
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22
 - Google Gemini API key
 
 ### Install
@@ -45,7 +45,7 @@ I built this project to learn how to effectively integrate AI agents into a real
 ```bash
 git clone https://github.com/syliow/Panel-AI.git
 cd Panel-AI
-npm install
+npm ci
 ```
 
 ### Environment
@@ -71,9 +71,18 @@ npm run dev     # local development server
 npm run build   # production build
 npm run start   # start production server
 npm run lint    # lint
+npm test        # tests
+npm run typecheck # TypeScript validation
 ```
 
 ## Deployment
+
+### EC2 with Docker, Kubernetes, and Helm
+
+Follow the [deployment guide](docs/deployment.md) to build the standalone Docker image, connect to an existing EC2 instance, install k3s, and deploy with Helm. Images are copied over SSH and imported directly into k3s; no registry or Terraform setup is needed.
+
+The chart includes two replicas, health probes, resource limits, a Service, and Traefik Ingress. Supply `GEMINI_API_KEY` through a Kubernetes Secret. `GET /api/health` checks application process health without calling Gemini.
+
 
 ### Netlify
 
@@ -120,7 +129,7 @@ src/
 
 ## Security Notes
 
-- API keys stay server-side and are not bundled into client code.
+- API keys are supplied at runtime and excluded from the Docker build. The existing Live-session endpoint returns the Gemini key to the browser for its direct connection; see [security notes](SECURITY.md).
 - Most AI calls are routed through Next.js API routes (live audio uses Gemini streaming).
 - Basic client-side rate limiting is in place to reduce abuse.
 

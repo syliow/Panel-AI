@@ -71,7 +71,7 @@ export class GeminiLiveService {
     // Fetch API key from server
     let apiKey: string;
     try {
-      // Use GET to fetch API key (no Turnstile needed)
+      // Fetch credentials for the Live connection.
       const response = await fetch('/api/live-session');
       
       if (!response.ok) {
