@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.github
+.agents
+.codex
+.env
+.env.*
+coverage
+helm
+k8s
+docs
+scripts
+*.md
+*.png
+*.pem
+*.key
