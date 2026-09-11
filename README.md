@@ -81,7 +81,7 @@ npm run typecheck # TypeScript validation
 
 Follow the [deployment guide](docs/deployment.md) to build the standalone Docker image, connect to an existing EC2 instance, install k3s, and deploy with Helm. Images are copied over SSH and imported directly into k3s; no registry or Terraform setup is needed.
 
-The chart includes two replicas, health probes, resource limits, a Service, and Traefik Ingress. Supply `GEMINI_API_KEY` through a Kubernetes Secret. `GET /api/health` checks application process health without calling Gemini.
+The chart runs one replica with health probes, resource limits, and a NodePort Service on port 30080. Updates briefly interrupt the app. Supply `GEMINI_API_KEY` through a Kubernetes Secret. `GET /api/health` checks application process health without calling Gemini.
 
 
 ### Netlify
