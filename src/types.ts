@@ -51,3 +51,6 @@ export interface FeedbackData {
     feedback: string;
   };
 }
+
+export type VolumeCallback = (volume: number) => void;
+export type SubscribeToVolume = (callback: VolumeCallback) => () => void;
