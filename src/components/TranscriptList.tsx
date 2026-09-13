@@ -11,7 +11,7 @@ interface TranscriptListProps {
 
 export const TranscriptList = React.memo<TranscriptListProps>(({ transcript, isAiSpeaking }) => {
   return (
-    <>
+    <ul className="flex flex-col w-full" aria-live="polite" role="log">
       {transcript.map((item, index) => (
         <TranscriptMessage
             key={item.id}
@@ -19,7 +19,7 @@ export const TranscriptList = React.memo<TranscriptListProps>(({ transcript, isA
             isSpeaking={isAiSpeaking && item.speaker === 'AI' && index === transcript.length - 1}
         />
       ))}
-    </>
+    </ul>
   );
 });
 
