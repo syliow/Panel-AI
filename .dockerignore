@@ -10,7 +10,35 @@ coverage
 helm
 docs
 scripts
+terraform
 *.md
 *.png
 *.pem
 *.key
+
+# Local credentials and Kubernetes configuration
+**/.aws
+**/.ssh
+**/kubeconfig
+**/kubeconfig.*
+
+# Terraform artifacts, including any saved outside terraform/
+**/.terraform
+**/*.tfstate
+**/*.tfstate.*
+**/.terraform.tfstate.lock.info
+**/terraform.tfstate.d
+**/*.tfvars
+**/*.tfvars.json
+**/*.tfplan
+**/.terraformrc
+**/terraform.rc
+
+# Local build output and logs
+build
+dist
+out
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
